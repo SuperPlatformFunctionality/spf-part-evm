@@ -1,7 +1,7 @@
 
 # ![moonbeam](media/moonbeam-cover.jpg)
 
-Run an Ethereum compatible blockchain based on Substrate.
+Run an Ethereum compatible ~~parachain~~ (blockchain for now, until parachains are available) based on Substrate.
 
 *See [moonbeam.network](https://moonbeam.network) for the moonbeam blockchain description.*  
 *See [www.substrate.io](https://www.substrate.io/) for substrate information.*
@@ -43,11 +43,34 @@ cargo build --release
 target/release/node-moonbeam --dev
 ```
 
+### Docker image
+
+You can run the moonbeam node within Docker directly.  
+The Dockerfile is optimized for development speed.  
+(Running the `docker run...` command will recompile the binaries but not the dependencies)
+
+Building (takes 5-10 min):
+```bash
+docker build -t moonbeam-node-dev .
+```
+
+Running (takes 1 min to rebuild binaries):
+```bash
+docker run -t moonbeam-node-dev
+```
+
 
 ## Pallets
-* mb-core: Currently serves as a way to experiments with pallets and substrate
-* mb-session: WIP implementation of governance
-* mb-evm: Pallet to support EVM. It provides extra dispatchables
+* *aura*: Time-based Authority Consensus (for simplicity until more development is done)
+* *balances*: Account & Balance management
+* *grandpa*: GRANDPA Authority consensus (This will be removed once it becomes a parachain)
+* *sudo*: Allow specific account to call any dispatchable ("Alice": `0x57d213d0927ccc7596044c6ba013dd05522aacba`, will get removed at some point)
+* *timestamp*: On-Chain time management
+* *transaction*-payment: Transaction payement (fee) management
+* *evm*: EVM Execution. (Temporary until we work on pallet-ethereum)
+
+* ***mb-core***: Currently serves as a way to experiments with pallets and substrate (will get removed)
+* ***mb-session***: Logic for selecting validators based on a endorsement system
 
 ## Contribute
 
