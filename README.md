@@ -1,5 +1,7 @@
 
 # ![moonbeam](media/moonbeam-cover.jpg)
+[![pipeline status](https://gitlab.com/asapede/moonbeam/badges/master/pipeline.svg)](https://gitlab.com/asapede/moonbeam/-/commits/master)
+
 
 Run an Ethereum compatible ~~parachain~~ (blockchain for now, until parachains are available) based on Substrate.
 
@@ -40,8 +42,30 @@ cargo build --release
 ### Single node dev
 
 ```bash
-target/release/node-moonbeam --dev
+./target/release/node-moonbeam --dev --unsafe-rpc-expose --execution=native
 ```
+
+### Multi node local testnet
+
+On terminal A:
+
+```bash
+./scripts/run-alice.sh
+```
+
+On terminal B:
+
+```bash
+./scripts/run-bob.sh
+```
+
+To inject the Alice offchain worker key:
+
+```bash
+./scripts/set-offchain-key-alice.sh
+```
+
+To purge the chain, delete the `./scripts/tmp` folder.
 
 ### Docker image
 
@@ -59,7 +83,6 @@ Running (takes 1 min to rebuild binaries):
 docker run -t moonbeam-node-dev
 ```
 
-
 ## Pallets
 * *aura*: Time-based Authority Consensus (for simplicity until more development is done)
 * *balances*: Account & Balance management
@@ -71,6 +94,15 @@ docker run -t moonbeam-node-dev
 
 * ***mb-core***: Currently serves as a way to experiments with pallets and substrate (will get removed)
 * ***mb-session***: Logic for selecting validators based on a endorsement system
+
+## Tests
+
+Tests are run with the following command:
+```bash
+cargo test --verbose
+```
+
+This github repository is also linked to Gitlab CI
 
 ## Contribute
 
