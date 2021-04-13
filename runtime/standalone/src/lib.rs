@@ -114,10 +114,10 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node-moonbeam"),
-	impl_name: create_runtime_str!("node-moonbeam"),
-	authoring_version: 1,
-	spec_version: 1,
+	spec_name: create_runtime_str!("moonbeam-standalone"),
+	impl_name: create_runtime_str!("moonbeam-standalone"),
+	authoring_version: 2,
+	spec_version: 2,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
