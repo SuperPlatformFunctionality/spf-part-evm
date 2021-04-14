@@ -20,7 +20,7 @@ cd moonbeam && git submodule update --init --recursive
 
 Install Substrate and its pre-requisites (including Rust):  
 ```bash
-curl https://getsubstrate.io -sSf | bash -s -- --fast 
+curl https://getsubstrate.io -sSf | bash -s -- --fast
 ```
 
 ## Build
@@ -41,7 +41,7 @@ source $HOME/.cargo/env
 ### Single node dev
 
 ```bash
-./target/release/node-moonbeam --dev
+./target/release/moonbase-standalone --dev
 ```
 ### Docker image
 
@@ -84,5 +84,5 @@ This github repository is also linked to Gitlab CI
 
 ### Code style
 
-Moonbeam is following the [substrate code style](https://openethereum.github.io/wiki/Substrate-Style-Guide)  
+Moonbeam is following the [Substrate code style](https://github.com/paritytech/substrate/blob/master/docs/STYLE_GUIDE.md)  
 We provide a [.editorconfig](.editorconfig) (*compatible with VSCode using RLS*)
