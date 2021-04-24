@@ -67,7 +67,6 @@ pub fn new_partial(
 			moonbeam_runtime::opaque::Block,
 			Arc<FullClient>,
 			FullClient,
-			FullBackend,
 		>,
 	>,
 	sc_service::Error,
@@ -130,8 +129,6 @@ pub fn run_node(
 	mut polkadot_config: polkadot_collator::Configuration,
 	id: polkadot_primitives::v0::Id,
 	validator: bool,
-	eth_block_limit: Option<u32>,
-	eth_log_limit: Option<u32>
 ) -> sc_service::error::Result<(
 	TaskManager,
 	Arc<
@@ -202,19 +199,16 @@ pub fn run_node(
 		let network = network.clone();
 
 		Box::new(move |deny_unsafe| {
-			let deps = crate::rpc::FullDeps {
+			let deps = moonbeam_rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
-				graph_pool: pool.pool().clone(),
 				deny_unsafe,
 				is_authority,
-				eth_block_limit,
-				eth_log_limit,
 				network: network.clone(),
 				command_sink: Some(command_sink.clone())
 			};
 
-			crate::rpc::create_full(
+			moonbeam_rpc::create_full(
 				deps,
 				subscription_task_executor.clone()
 			)

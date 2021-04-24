@@ -52,13 +52,12 @@ pub enum ConsensusResult {
 				Block,
 				GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
 				FullClient,
-				FullBackend,
 			>,
 			AuraPair
 		>,
 		sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>
 	),
-	ManualSeal(FrontierBlockImport<Block, Arc<FullClient>, FullClient, FullBackend>)
+	ManualSeal(FrontierBlockImport<Block, Arc<FullClient>, FullClient>)
 }
 
 pub fn new_partial(config: &Configuration, manual_seal: bool) -> Result<
@@ -144,8 +143,6 @@ pub fn new_partial(config: &Configuration, manual_seal: bool) -> Result<
 pub fn new_full(
 	config: Configuration,
 	manual_seal: bool,
-	eth_block_limit: Option<u32>,
-	eth_log_limit: Option<u32>,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client, backend, mut task_manager, import_queue, keystore, select_chain, transaction_pool,
@@ -213,18 +210,15 @@ pub fn new_full(
 		let pool = transaction_pool.clone();
 		let network = network.clone();
 		Box::new(move |deny_unsafe| {
-			let deps = crate::rpc::FullDeps {
+			let deps = moonbeam_rpc::FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
-				graph_pool: pool.pool().clone(),
 				deny_unsafe,
 				is_authority,
-				eth_block_limit,
-				eth_log_limit,
 				network: network.clone(),
 				command_sink: Some(command_sink.clone())
 			};
-			crate::rpc::create_full(
+			moonbeam_rpc::create_full(
 				deps,
 				subscription_task_executor.clone()
 			)
@@ -389,14 +383,14 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 		config.prometheus_registry(),
 	)?;
 
-	let light_deps = crate::rpc::LightDeps {
+	let light_deps = moonbeam_rpc::LightDeps {
 		remote_blockchain: backend.remote_blockchain(),
 		fetcher: on_demand.clone(),
 		client: client.clone(),
 		pool: transaction_pool.clone(),
 	};
 
-	let rpc_extensions = crate::rpc::create_light(light_deps);
+	let rpc_extensions = moonbeam_rpc::create_light(light_deps);
 
 	let finality_proof_provider =
 		Arc::new(GrandpaFinalityProofProvider::new(backend.clone(), client.clone() as Arc<_>));
