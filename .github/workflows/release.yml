@@ -10,7 +10,7 @@ name: Release
 # the commit the **PR is merging into**. This prevents malicious attack trying
 # to change the CI in the PR.
 ####### DO NOT CHANGE THIS !! #######
-on: ["push", "pull_request_target"]
+on: ["push"]
 
 jobs:
   ####### Check files and formatting #######
@@ -96,7 +96,7 @@ jobs:
         if: github.event_name != 'pull_request_target'
         uses: actions/checkout@v2
       - name: Check with Prettier
-        run: npx prettier --check --ignore-path .gitignore  '**/*.(yml|js|ts|json)' **.json **.js **.ts **.yml
+        run: npx prettier --check --ignore-path .gitignore  '**/*.(yml|js|ts|json)'
 
   ####### Building and Testing binaries #######
 
