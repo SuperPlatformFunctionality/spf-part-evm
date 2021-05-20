@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "generate-specs": "cd .. && scripts/generate-test-specs.sh",
+    "test-only-with-logs": "mocha  --printlogs -r ts-node/register 'tests/**/*.ts'",
     "test-only": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "test": "npm run generate-specs && npm run test-only"
+    "test": "npm run generate-specs && npm run test-only",
+    "test-with-logs": "npm run generate-specs && npm run test-only-with-logs"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@polkadot/api": "^2.9.1",
+    "@polkadot/api": "^3.2",
     "@types/chai": "^4.2.11",
     "@types/mocha": "^8.0.0",
     "chai": "^4.2.0",
