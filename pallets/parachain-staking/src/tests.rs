@@ -15,15 +15,19 @@
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Unit testing
-use crate::mock::*;
-use crate::*;
+use crate::mock::{
+	events, five_collators_five_nominators, five_collators_no_nominators, last_event,
+	one_collator_two_nominators, roll_to, set_author, two_collators_four_nominators, Balances,
+	Event as MetaEvent, Origin, Stake, System, Test,
+};
+use crate::{CollatorStatus, Error, Event};
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::{traits::Zero, DispatchError, Perbill};
 
 #[test]
 fn geneses() {
 	two_collators_four_nominators().execute_with(|| {
-		assert!(Sys::events().is_empty());
+		assert!(System::events().is_empty());
 		// collators
 		assert_eq!(Balances::reserved_balance(&1), 500);
 		assert_eq!(Balances::free_balance(&1), 500);
@@ -49,7 +53,7 @@ fn geneses() {
 		assert_eq!(Balances::reserved_balance(&9), 0);
 	});
 	five_collators_five_nominators().execute_with(|| {
-		assert!(Sys::events().is_empty());
+		assert!(System::events().is_empty());
 		// collators
 		for x in 1..5 {
 			assert!(Stake::is_candidate(&x));
@@ -141,7 +145,7 @@ fn join_collator_candidates() {
 		assert_noop!(
 			Stake::join_candidates(Origin::signed(8), Perbill::from_percent(2), 10u128,),
 			DispatchError::Module {
-				index: 0,
+				index: 1,
 				error: 3,
 				message: Some("InsufficientBalance")
 			}
@@ -150,7 +154,7 @@ fn join_collator_candidates() {
 			Stake::join_candidates(Origin::signed(7), Perbill::from_percent(51), 10u128,),
 			Error::<Test>::FeeOverMax
 		);
-		assert!(Sys::events().is_empty());
+		assert!(System::events().is_empty());
 		assert_ok!(Stake::join_candidates(
 			Origin::signed(7),
 			Perbill::from_percent(3),
@@ -542,7 +546,7 @@ fn multiple_nominations() {
 		assert_noop!(
 			Stake::nominate(Origin::signed(7), 3, 11),
 			DispatchError::Module {
-				index: 0,
+				index: 1,
 				error: 3,
 				message: Some("InsufficientBalance")
 			},
@@ -630,7 +634,7 @@ fn collators_bond() {
 		assert_noop!(
 			Stake::candidate_bond_more(Origin::signed(1), 40),
 			DispatchError::Module {
-				index: 0,
+				index: 1,
 				error: 3,
 				message: Some("InsufficientBalance")
 			}
@@ -704,7 +708,7 @@ fn nominators_bond() {
 		assert_noop!(
 			Stake::nominator_bond_more(Origin::signed(6), 1, 81),
 			DispatchError::Module {
-				index: 0,
+				index: 1,
 				error: 3,
 				message: Some("InsufficientBalance")
 			}
@@ -899,5 +903,66 @@ fn payouts_follow_nomination_changes() {
 		];
 		expected.append(&mut new7);
 		assert_eq!(events(), expected);
+	});
+}
+
+#[test]
+fn round_transitions() {
+	// round_immediately_jumps_if_current_duration_exceeds_new_blocks_per_round
+	one_collator_two_nominators().execute_with(|| {
+		// Default round every 5 blocks, but MinBlocksPerRound is 3 and we set it to min 3 blocks
+		roll_to(8);
+		// chooses top TotalSelectedCandidates (5), in order
+		let init = vec![
+			Event::CollatorChosen(2, 1, 40),
+			Event::NewRound(5, 2, 1, 40),
+		];
+		assert_eq!(events(), init);
+		assert_ok!(Stake::set_blocks_per_round(Origin::root(), 3u32));
+		assert_eq!(
+			last_event(),
+			MetaEvent::stake(Event::BlocksPerRoundSet(2, 5, 5, 3))
+		);
+		roll_to(9);
+		assert_eq!(last_event(), MetaEvent::stake(Event::NewRound(8, 3, 1, 40)));
+	});
+	// round_immediately_jumps_if_current_duration_exceeds_new_blocks_per_round
+	one_collator_two_nominators().execute_with(|| {
+		roll_to(9);
+		let init = vec![
+			Event::CollatorChosen(2, 1, 40),
+			Event::NewRound(5, 2, 1, 40),
+		];
+		assert_eq!(events(), init);
+		assert_ok!(Stake::set_blocks_per_round(Origin::root(), 3u32));
+		assert_eq!(
+			last_event(),
+			MetaEvent::stake(Event::BlocksPerRoundSet(2, 5, 5, 3))
+		);
+		roll_to(10);
+		assert_eq!(last_event(), MetaEvent::stake(Event::NewRound(9, 3, 1, 40)));
+	});
+	// if current duration less than new blocks per round (bpr), round waits until new bpr passes
+	one_collator_two_nominators().execute_with(|| {
+		// Default round every 5 blocks, but MinBlocksPerRound is 3 and we set it to min 3 blocks
+		roll_to(6);
+		// chooses top TotalSelectedCandidates (5), in order
+		let init = vec![
+			Event::CollatorChosen(2, 1, 40),
+			Event::NewRound(5, 2, 1, 40),
+		];
+		assert_eq!(events(), init);
+		assert_ok!(Stake::set_blocks_per_round(Origin::root(), 3u32));
+		assert_eq!(
+			last_event(),
+			MetaEvent::stake(Event::BlocksPerRoundSet(2, 5, 5, 3))
+		);
+		roll_to(8);
+		assert_eq!(
+			last_event(),
+			MetaEvent::stake(Event::BlocksPerRoundSet(2, 5, 5, 3))
+		);
+		roll_to(9);
+		assert_eq!(last_event(), MetaEvent::stake(Event::NewRound(8, 3, 1, 40)));
 	});
 }
