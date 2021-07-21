@@ -22,6 +22,7 @@
 //! Full Service: A complete parachain node including the pool, rpc, network, embedded relay chain
 //! Dev Service: A leaner service without the relay chain backing.
 
+use crate::cli::EthApi as EthApiCmd;
 use crate::{cli::Sealing, inherents::build_inherent_data_providers};
 use async_io::Timer;
 use cumulus_client_consensus_relay_chain::{
@@ -36,6 +37,7 @@ use fc_mapping_sync::MappingSyncWorker;
 use fc_rpc::EthTask;
 use fc_rpc_core::types::{FilterPool, PendingTransactions};
 use futures::{Stream, StreamExt};
+use moonbeam_rpc_trace::TraceFilterCache;
 use moonbeam_runtime::{opaque::Block, RuntimeApi};
 use polkadot_primitives::v0::CollatorPair;
 use sc_cli::SubstrateCli;
@@ -219,6 +221,7 @@ async fn start_node_impl<RB>(
 	polkadot_config: Configuration,
 	id: polkadot_primitives::v0::Id,
 	collator: bool,
+	ethapi_cmd: Vec<EthApiCmd>,
 	_rpc_ext_builder: RB,
 ) -> sc_service::error::Result<(TaskManager, Arc<FullClient>)>
 where
@@ -281,6 +284,14 @@ where
 	let subscription_task_executor =
 		sc_rpc::SubscriptionTaskExecutor::new(task_manager.spawn_handle());
 
+	let (trace_filter_task, trace_filter_requester) = if ethapi_cmd.contains(&EthApiCmd::Trace) {
+		let (trace_filter_task, trace_filter_requester) =
+			TraceFilterCache::task(Arc::clone(&client), Arc::clone(&backend));
+		(Some(trace_filter_task), Some(trace_filter_requester))
+	} else {
+		(None, None)
+	};
+
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
@@ -288,6 +299,8 @@ where
 		let pending = pending_transactions.clone();
 		let filter_pool = filter_pool.clone();
 		let frontier_backend = frontier_backend.clone();
+		let backend = backend.clone();
+		let ethapi_cmd = ethapi_cmd.clone();
 
 		Box::new(move |deny_unsafe, _| {
 			let deps = crate::rpc::FullDeps {
@@ -299,8 +312,11 @@ where
 				network: network.clone(),
 				pending_transactions: pending.clone(),
 				filter_pool: filter_pool.clone(),
+				ethapi_cmd: ethapi_cmd.clone(),
 				command_sink: None,
-				backend: frontier_backend.clone(),
+				trace_filter_requester: trace_filter_requester.clone(),
+				frontier_backend: frontier_backend.clone(),
+				backend: backend.clone(),
 			};
 
 			crate::rpc::create_full(deps, subscription_task_executor.clone())
@@ -334,6 +350,13 @@ where
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;
+
+	// Spawn trace_filter cache task if enabled.
+	if let Some(trace_filter_task) = trace_filter_task {
+		task_manager
+			.spawn_essential_handle()
+			.spawn("trace-filter-cache", trace_filter_task);
+	}
 
 	// Spawn Frontier EthFilterApi maintenance task.
 	if let Some(filter_pool) = filter_pool {
@@ -421,6 +444,7 @@ pub async fn start_node(
 	polkadot_config: Configuration,
 	id: polkadot_primitives::v0::Id,
 	collator: bool,
+	ethapi_cmd: Vec<EthApiCmd>,
 ) -> sc_service::error::Result<(TaskManager, Arc<FullClient>)> {
 	start_node_impl(
 		parachain_config,
@@ -429,6 +453,7 @@ pub async fn start_node(
 		polkadot_config,
 		id,
 		collator,
+		ethapi_cmd,
 		|_| Default::default(),
 	)
 	.await
@@ -443,6 +468,7 @@ pub fn new_dev(
 	// TODO I guess we should use substrate-cli's validator flag for this.
 	// Resolve after https://github.com/paritytech/cumulus/pull/380 is reviewed.
 	collator: bool,
+	ethapi_cmd: Vec<EthApiCmd>,
 ) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
@@ -553,12 +579,22 @@ pub fn new_dev(
 		);
 	}
 
+	let (trace_filter_task, trace_filter_requester) = if ethapi_cmd.contains(&EthApiCmd::Trace) {
+		let (trace_filter_task, trace_filter_requester) =
+			TraceFilterCache::task(Arc::clone(&client), Arc::clone(&backend));
+		(Some(trace_filter_task), Some(trace_filter_requester))
+	} else {
+		(None, None)
+	};
+
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
+		let backend = backend.clone();
 		let network = network.clone();
 		let pending = pending_transactions.clone();
 		let filter_pool = filter_pool.clone();
+		let ethapi_cmd = ethapi_cmd.clone();
 		let frontier_backend = frontier_backend.clone();
 
 		Box::new(move |deny_unsafe, _| {
@@ -571,8 +607,11 @@ pub fn new_dev(
 				network: network.clone(),
 				pending_transactions: pending.clone(),
 				filter_pool: filter_pool.clone(),
+				ethapi_cmd: ethapi_cmd.clone(),
 				command_sink: command_sink.clone(),
-				backend: frontier_backend.clone(),
+				frontier_backend: frontier_backend.clone(),
+				backend: backend.clone(),
+				trace_filter_requester: trace_filter_requester.clone(),
 			};
 			crate::rpc::create_full(deps, subscription_task_executor.clone())
 		})
@@ -605,6 +644,13 @@ pub fn new_dev(
 		)
 		.for_each(|()| futures::future::ready(())),
 	);
+
+	// Spawn trace_filter cache task if enabled.
+	if let Some(trace_filter_task) = trace_filter_task {
+		task_manager
+			.spawn_essential_handle()
+			.spawn("trace-filter-cache", trace_filter_task);
+	}
 
 	// Spawn Frontier EthFilterApi maintenance task.
 	if let Some(filter_pool) = filter_pool {
