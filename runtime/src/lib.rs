@@ -113,7 +113,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("moonbeam"),
 	impl_name: create_runtime_str!("moonbeam"),
 	authoring_version: 3,
-	spec_version: 29,
+	spec_version: 30,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -257,6 +257,11 @@ impl pallet_evm::GasWeightMapping for MoonbeamGasWeightMapping {
 	}
 }
 
+parameter_types! {
+	pub BlockGasLimit: U256
+		= U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS);
+}
+
 impl pallet_evm::Config for Runtime {
 	type FeeCalculator = ();
 	type GasWeightMapping = MoonbeamGasWeightMapping;
@@ -269,6 +274,7 @@ impl pallet_evm::Config for Runtime {
 	type Precompiles = precompiles::MoonbeamPrecompiles<Self>;
 	type ChainId = EthereumChainId;
 	type OnChargeTransaction = ();
+	type BlockGasLimit = BlockGasLimit;
 }
 
 parameter_types! {
@@ -426,16 +432,10 @@ impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConve
 
 pub struct EthereumFindAuthor<F>(PhantomData<F>);
 
-parameter_types! {
-	pub BlockGasLimit: U256
-		= U256::from(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT / WEIGHT_PER_GAS);
-}
-
 impl pallet_ethereum::Config for Runtime {
 	type Event = Event;
 	type FindAuthor = AuthorInherent;
 	type StateRoot = pallet_ethereum::IntermediateStateRoot;
-	type BlockGasLimit = BlockGasLimit;
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -1026,7 +1026,7 @@ impl_runtime_apis! {
 		}
 
 		fn current_block_gas_limit() -> U256 {
-			<Runtime as pallet_ethereum::Config>::BlockGasLimit::get()
+			<Runtime as pallet_evm::Config>::BlockGasLimit::get()
 		}
 	}
 
