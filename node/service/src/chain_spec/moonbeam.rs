@@ -25,11 +25,11 @@ use crate::chain_spec::{generate_accounts, get_from_seed, Extensions};
 use cumulus_primitives_core::ParaId;
 use evm::GenesisAccount;
 use moonbeam_runtime::{
-	AccountId, AuthorFilterConfig, AuthorMappingConfig, Balance, BalancesConfig,
+	currency::GLMR, AccountId, AuthorFilterConfig, AuthorMappingConfig, Balance, BalancesConfig,
 	CouncilCollectiveConfig, CrowdloanRewardsConfig, DemocracyConfig, EVMConfig,
 	EthereumChainIdConfig, EthereumConfig, GenesisConfig, InflationInfo, ParachainInfoConfig,
 	ParachainStakingConfig, Range, SchedulerConfig, SudoConfig, SystemConfig,
-	TechComitteeCollectiveConfig, GLMR, WASM_BINARY,
+	TechComitteeCollectiveConfig, WASM_BINARY,
 };
 use nimbus_primitives::NimbusId;
 use sc_service::ChainType;
@@ -238,6 +238,8 @@ pub fn testnet_genesis(
 				})
 				.collect(),
 		},
+		pallet_treasury_Instance1: Default::default(),
+		pallet_treasury_Instance2: Default::default(),
 	}
 }
 
