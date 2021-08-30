@@ -118,7 +118,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("moonriver"),
 	impl_name: create_runtime_str!("moonriver"),
 	authoring_version: 3,
-	spec_version: 45,
+	spec_version: 46,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -342,7 +342,7 @@ impl pallet_scheduler::Config for Runtime {
 parameter_types! {
 	/// The maximum amount of time (in blocks) for council members to vote on motions.
 	/// Motions may end in fewer blocks if enough votes are cast to determine the result.
-	pub const CouncilMotionDuration: BlockNumber = 100;
+	pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
 	/// The maximum number of Proposlas that can be open in the council at once.
 	pub const CouncilMaxProposals: u32 = 100;
 	/// The maximum number of council members.
@@ -350,7 +350,7 @@ parameter_types! {
 
 	/// The maximum amount of time (in blocks) for technical committee members to vote on motions.
 	/// Motions may end in fewer blocks if enough votes are cast to determine the result.
-	pub const TechComitteeMotionDuration: BlockNumber = 100;
+	pub const TechComitteeMotionDuration: BlockNumber = 3 * DAYS;
 	/// The maximum number of Proposlas that can be open in the technical committee at once.
 	pub const TechComitteeMaxProposals: u32 = 100;
 	/// The maximum number of technical committee members.
@@ -635,11 +635,15 @@ impl pallet_author_mapping::Config for Runtime {
 parameter_types! {
 	// One storage item; key size 32, value size 8; .
 	pub const ProxyDepositBase: Balance = currency::deposit(1, 8);
-	// Additional storage item size of 33 bytes.
-	pub const ProxyDepositFactor: Balance = currency::deposit(0, 33);
+	// Additional storage item size of 21 bytes (20 bytes AccountId + 1 byte sizeof(ProxyType)).
+	pub const ProxyDepositFactor: Balance = currency::deposit(0, 21);
 	pub const MaxProxies: u16 = 32;
 	pub const AnnouncementDepositBase: Balance = currency::deposit(1, 8);
-	pub const AnnouncementDepositFactor: Balance = currency::deposit(0, 66);
+	// Additional storage item size of 56 bytes:
+	// - 20 bytes AccountId
+	// - 32 bytes Hasher (Blake2256)
+	// - 4 bytes BlockNumber (u32)
+	pub const AnnouncementDepositFactor: Balance = currency::deposit(0, 56);
 	pub const MaxPending: u16 = 32;
 }
 
@@ -838,18 +842,10 @@ impl_runtime_apis! {
 			source: TransactionSource,
 			tx: <Block as BlockT>::Extrinsic,
 		) -> TransactionValidity {
-			// filtered calls should never enter the tx pool so they never enter a block
-			let mut allowed = <Runtime as frame_system::Config>
+			// Filtered calls should not enter the tx pool as they'll fail if inserted.
+			let allowed = <Runtime as frame_system::Config>
 				::BaseCallFilter::filter(&tx.function);
-			// filtered calls are still allowed if source is sudo
-			if !allowed {
-				match &tx.signature {
-					Some((account, ..)) => if &Sudo::key() == account {
-						allowed = true;
-					},
-					_ => (),
-				}
-			}
+
 			if allowed {
 				Executive::validate_transaction(source, tx)
 			} else {
