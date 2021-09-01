@@ -261,7 +261,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = ();
@@ -603,7 +603,7 @@ parameter_types! {
 	pub const VestingPeriod: BlockNumber = 48 * WEEKS;
 	pub const MinimumReward: Balance = 0;
 	pub const Initialized: bool = false;
-	pub const InitializationPayment: Perbill = Perbill::from_percent(20);
+	pub const InitializationPayment: Perbill = Perbill::from_percent(30);
 }
 
 impl pallet_crowdloan_rewards::Config for Runtime {
