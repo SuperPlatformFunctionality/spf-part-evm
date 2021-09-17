@@ -27,7 +27,7 @@ use moonbase_runtime::{
 };
 use nimbus_primitives::NimbusId;
 use pallet_evm::PrecompileSet;
-use parachain_staking::Bond;
+use parachain_staking::{Bond, NominatorAdded};
 use sp_core::{Public, H160, U256};
 use sp_runtime::DispatchError;
 
@@ -715,7 +715,9 @@ fn nominate_via_precompile() {
 					AccountId::from(BOB),
 					1000 * UNITS,
 					AccountId::from(ALICE),
-					2000 * UNITS,
+					NominatorAdded::AddedToTop {
+						new_total: 2000 * UNITS,
+					},
 				)),
 				Event::pallet_evm(pallet_evm::Event::<Runtime>::Executed(
 					staking_precompile_address,
@@ -948,6 +950,7 @@ fn nominator_bond_more_less_via_precompile() {
 					AccountId::from(BOB),
 					AccountId::from(ALICE),
 					1_500 * UNITS,
+					true,
 					2_000 * UNITS,
 				)),
 				Event::pallet_evm(pallet_evm::Event::<Runtime>::Executed(
@@ -991,6 +994,7 @@ fn nominator_bond_more_less_via_precompile() {
 					AccountId::from(BOB),
 					AccountId::from(ALICE),
 					2_000 * UNITS,
+					true,
 					1_500 * UNITS,
 				)),
 				Event::pallet_evm(pallet_evm::Event::<Runtime>::Executed(
@@ -1040,7 +1044,7 @@ fn is_nominator_via_precompile() {
 			let expected_true_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0, //TODO moonbase runtime still uses DbWeight = ()
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1065,7 +1069,7 @@ fn is_nominator_via_precompile() {
 			let expected_false_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1105,7 +1109,7 @@ fn is_candidate_via_precompile() {
 			let expected_true_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1130,7 +1134,7 @@ fn is_candidate_via_precompile() {
 			let expected_false_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1172,7 +1176,7 @@ fn is_selected_candidate_via_precompile() {
 			let expected_true_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1197,7 +1201,7 @@ fn is_selected_candidate_via_precompile() {
 			let expected_false_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
@@ -1229,7 +1233,7 @@ fn min_nomination_via_precompile() {
 		let expected_result = Some(Ok(PrecompileOutput {
 			exit_status: ExitSucceed::Returned,
 			output: buffer.to_vec(),
-			cost: 0,
+			cost: 1000,
 			logs: Default::default(),
 		}));
 
@@ -1261,7 +1265,7 @@ fn points_precompile_zero() {
 		let expected_zero_result = Some(Ok(PrecompileOutput {
 			exit_status: ExitSucceed::Returned,
 			output: expected_bytes,
-			cost: 0,
+			cost: 1000,
 			logs: Default::default(),
 		}));
 
@@ -1309,7 +1313,7 @@ fn points_precompile_non_zero() {
 			let expected_result = Some(Ok(PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_bytes,
-				cost: 0,
+				cost: 1000,
 				logs: Default::default(),
 			}));
 
