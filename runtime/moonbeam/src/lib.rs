@@ -307,11 +307,6 @@ impl pallet_transaction_payment::Config for Runtime {
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Runtime>;
 }
 
-impl pallet_sudo::Config for Runtime {
-	type Call = Call;
-	type Event = Event;
-}
-
 impl pallet_ethereum_chain_id::Config for Runtime {}
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -694,8 +689,9 @@ parameter_types! {
 	/// Minimum stake required to be reserved to be a candidate
 	pub const MinCandidateStk: u128 = 1000 * currency::GLMR * currency::SUPPLY_FACTOR;
 	/// Minimum stake required to be reserved to be a delegator
-	pub const MinDelegatorStk: u128 = 5 * currency::GLMR * currency::SUPPLY_FACTOR;
+	pub const MinDelegatorStk: u128 = 500 * currency::MILLIGLMR * currency::SUPPLY_FACTOR;
 }
+
 impl parachain_staking::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -961,8 +957,8 @@ construct_runtime! {
 		Migrations: pallet_migrations::{Pallet, Storage, Config, Event<T>} = 34,
 		ProxyGenesisCompanion: pallet_proxy_genesis_companion::{Pallet, Config<T>} = 35,
 
-		// Sudo.
-		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 40,
+		// Has been permanently removed for safety reasons.
+		// Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 40,
 
 		// Ethereum compatibility.
 		EthereumChainId: pallet_ethereum_chain_id::{Pallet, Storage, Config} = 50,
@@ -1173,7 +1169,7 @@ mod tests {
 		// staking minimums
 		assert_eq!(MinCollatorStk::get(), Balance::from(100 * KILOGLMR));
 		assert_eq!(MinCandidateStk::get(), Balance::from(100 * KILOGLMR));
-		assert_eq!(MinDelegatorStk::get(), Balance::from(500 * GLMR));
+		assert_eq!(MinDelegatorStk::get(), Balance::from(50 * GLMR));
 
 		// crowdloan min reward
 		assert_eq!(MinimumReward::get(), Balance::from(0u128));
