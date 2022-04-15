@@ -154,6 +154,31 @@ pub mod pallet {
 		pub total: Balance,
 	}
 
+	impl<A: PartialEq, B: PartialEq> PartialEq for CollatorSnapshot<A, B> {
+		fn eq(&self, other: &Self) -> bool {
+			let must_be_true = self.bond == other.bond && self.total == other.total;
+			if !must_be_true {
+				return false;
+			}
+			for (
+				Bond {
+					owner: o1,
+					amount: a1,
+				},
+				Bond {
+					owner: o2,
+					amount: a2,
+				},
+			) in self.delegations.iter().zip(other.delegations.iter())
+			{
+				if o1 != o2 || a1 != a2 {
+					return false;
+				}
+			}
+			true
+		}
+	}
+
 	impl<A, B: Default> Default for CollatorSnapshot<A, B> {
 		fn default() -> CollatorSnapshot<A, B> {
 			CollatorSnapshot {
@@ -536,7 +561,7 @@ pub mod pallet {
 			self.lowest_top_delegation_amount = top_delegations.lowest_delegation_amount().into();
 			self.top_capacity = top_delegations.top_capacity::<T>();
 			let old_total_counted = self.total_counted;
-			self.total_counted = self.bond + top_delegations.total.into();
+			self.total_counted = self.bond.saturating_add(top_delegations.total.into());
 			// CandidatePool value for candidate always changes if top delegations total changes
 			// so we moved the update into this function to deduplicate code and patch a bug that
 			// forgot to apply the update when increasing top delegation
@@ -1463,9 +1488,9 @@ pub mod pallet {
 				Error::<T>::DelegationBelowMin
 			);
 			// Net Total is total after pending orders are executed
-			let net_total = self.total - self.requests.less_total;
+			let net_total = self.total.saturating_sub(self.requests.less_total);
 			// Net Total is always >= MinDelegatorStk
-			let max_subtracted_amount = net_total - T::MinDelegatorStk::get().into();
+			let max_subtracted_amount = net_total.saturating_sub(T::MinDelegatorStk::get().into());
 			ensure!(
 				less <= max_subtracted_amount,
 				Error::<T>::DelegatorBondBelowMin
@@ -1546,7 +1571,7 @@ pub mod pallet {
 						true
 					} else {
 						ensure!(
-							self.total - T::MinDelegatorStk::get().into() >= amount,
+							self.total.saturating_sub(T::MinDelegatorStk::get().into()) >= amount,
 							Error::<T>::DelegatorBondBelowMin
 						);
 						false
@@ -3003,11 +3028,11 @@ pub mod pallet {
 				.expect("verified can reserve at top of this extrinsic body");
 			// only is_some if kicked the lowest bottom as a consequence of this new delegation
 			let net_total_increase = if let Some(less) = less_total_staked {
-				amount - less
+				amount.saturating_sub(less)
 			} else {
 				amount
 			};
-			let new_total_locked = <Total<T>>::get() + net_total_increase;
+			let new_total_locked = <Total<T>>::get().saturating_add(net_total_increase);
 			<Total<T>>::put(new_total_locked);
 			<CandidateInfo<T>>::insert(&candidate, state);
 			<DelegatorState<T>>::insert(&delegator, delegator_state);
@@ -3221,7 +3246,7 @@ pub mod pallet {
 			if now <= delay {
 				return;
 			}
-			let round_to_payout = now - delay;
+			let round_to_payout = now.saturating_sub(delay);
 			let total_points = <Points<T>>::get(round_to_payout);
 			if total_points.is_zero() {
 				return;
@@ -3264,7 +3289,7 @@ pub mod pallet {
 				return 0u64.into();
 			}
 
-			let paid_for_round = now - delay;
+			let paid_for_round = now.saturating_sub(delay);
 
 			if let Some(payout_info) = <DelayedPayouts<T>>::get(paid_for_round) {
 				let result = Self::pay_one_collator_reward(paid_for_round, payout_info);
@@ -3330,7 +3355,7 @@ pub mod pallet {
 					let collator_pct = Perbill::from_rational(state.bond, state.total);
 					let commission = pct_due * collator_issuance;
 					amt_due = amt_due.saturating_sub(commission);
-					let collator_reward = (collator_pct * amt_due) + commission;
+					let collator_reward = (collator_pct * amt_due).saturating_add(commission);
 					mint(collator_reward, collator.clone());
 					// pay delegators due portion
 					for Bond { owner, amount } in state.delegations {
@@ -3376,6 +3401,33 @@ pub mod pallet {
 				(0u32, 0u32, BalanceOf::<T>::zero());
 			// choose the top TotalSelected qualified candidates, ordered by stake
 			let collators = Self::compute_top_candidates();
+			if collators.is_empty() {
+				// SELECTION FAILED TO SELECT >=1 COLLATOR => select collators from previous round
+				let last_round = now.saturating_sub(1u32);
+				let mut total_per_candidate: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
+				// set this round AtStake to last round AtStake
+				for (account, snapshot) in <AtStake<T>>::iter_prefix(last_round) {
+					collator_count = collator_count.saturating_add(1u32);
+					delegation_count =
+						delegation_count.saturating_add(snapshot.delegations.len() as u32);
+					total = total.saturating_add(snapshot.total);
+					total_per_candidate.insert(account.clone(), snapshot.total);
+					<AtStake<T>>::insert(now, account, snapshot);
+				}
+				// `SelectedCandidates` remains unchanged from last round
+				// emit CollatorChosen event for tools that use this event
+				for candidate in <SelectedCandidates<T>>::get() {
+					let snapshot_total = total_per_candidate
+						.get(&candidate)
+						.expect("all selected candidates have snapshots");
+					Self::deposit_event(Event::CollatorChosen {
+						round: now,
+						collator_account: candidate,
+						total_exposed_amount: *snapshot_total,
+					})
+				}
+				return (collator_count, delegation_count, total);
+			}
 			// snapshot exposure for round for weighting reward distribution
 			for account in collators.iter() {
 				let state = <CandidateInfo<T>>::get(account)
@@ -3409,7 +3461,7 @@ pub mod pallet {
 	impl<T: Config> nimbus_primitives::EventHandler<T::AccountId> for Pallet<T> {
 		fn note_author(author: T::AccountId) {
 			let now = <Round<T>>::get().current;
-			let score_plus_20 = <AwardedPts<T>>::get(now, &author) + 20;
+			let score_plus_20 = <AwardedPts<T>>::get(now, &author).saturating_add(20);
 			<AwardedPts<T>>::insert(now, author, score_plus_20);
 			<Points<T>>::mutate(now, |x| *x = x.saturating_add(20));
 		}
