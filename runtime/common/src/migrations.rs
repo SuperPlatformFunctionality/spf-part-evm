@@ -32,7 +32,12 @@ use pallet_asset_manager::{
 	},
 	Config as AssetManagerConfig,
 };
-use pallet_author_mapping::{migrations::TwoXToBlake, Config as AuthorMappingConfig};
+use pallet_author_mapping::{
+	migrations::{AddKeysToRegistrationInfo, TwoXToBlake},
+	Config as AuthorMappingConfig,
+};
+use pallet_author_slot_filter::migration::EligibleRatioToEligiblityCount;
+use pallet_author_slot_filter::Config as AuthorSlotFilterConfig;
 use pallet_base_fee::Config as BaseFeeConfig;
 use pallet_migrations::{GetMigrations, Migration};
 use parachain_staking::{
@@ -51,6 +56,30 @@ use xcm_transactor::{migrations::MaxTransactWeight, Config as XcmTransactorConfi
 
 /// This module acts as a registry where each migration is defined. Each migration should implement
 /// the "Migration" trait declared in the pallet-migrations crate.
+
+/// A moonbeam migration wrapping the similarly named migration in pallet-author-mapping
+pub struct AuthorMappingAddKeysToRegistrationInfo<T>(PhantomData<T>);
+impl<T: AuthorMappingConfig> Migration for AuthorMappingAddKeysToRegistrationInfo<T> {
+	fn friendly_name(&self) -> &str {
+		"MM_Author_Mapping_AddKeysToRegistrationInfo"
+	}
+
+	fn migrate(&self, _available_weight: Weight) -> Weight {
+		AddKeysToRegistrationInfo::<T>::on_runtime_upgrade()
+	}
+
+	/// Run a standard pre-runtime test. This works the same way as in a normal runtime upgrade.
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade(&self) -> Result<(), &'static str> {
+		AddKeysToRegistrationInfo::<T>::pre_upgrade()
+	}
+
+	/// Run a standard post-runtime test. This works the same way as in a normal runtime upgrade.
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(&self) -> Result<(), &'static str> {
+		AddKeysToRegistrationInfo::<T>::post_upgrade()
+	}
+}
 
 /// Patch delegations total mismatch
 pub struct ParachainStakingPatchIncorrectDelegationSums<T>(PhantomData<T>);
@@ -477,6 +506,30 @@ impl<T: AssetManagerConfig> Migration for XcmPaymentSupportedAssets<T> {
 	}
 }
 
+pub struct AuthorSlotFilterEligibleRatioToEligiblityCount<T>(PhantomData<T>);
+impl<T> Migration for AuthorSlotFilterEligibleRatioToEligiblityCount<T>
+where
+	T: AuthorSlotFilterConfig,
+{
+	fn friendly_name(&self) -> &str {
+		"MM_AuthorSlotFilter_EligibleRatioToEligiblityCount"
+	}
+
+	fn migrate(&self, _available_weight: Weight) -> Weight {
+		EligibleRatioToEligiblityCount::<T>::on_runtime_upgrade()
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn pre_upgrade(&self) -> Result<(), &'static str> {
+		EligibleRatioToEligiblityCount::<T>::pre_upgrade()
+	}
+
+	#[cfg(feature = "try-runtime")]
+	fn post_upgrade(&self) -> Result<(), &'static str> {
+		EligibleRatioToEligiblityCount::<T>::post_upgrade()
+	}
+}
+
 pub struct SchedulerMigrationV3<T>(PhantomData<T>);
 impl<T: pallet_scheduler::Config> Migration for SchedulerMigrationV3<T> {
 	fn friendly_name(&self) -> &str {
@@ -508,6 +561,7 @@ where
 	Runtime: parachain_staking::Config,
 	Runtime: pallet_scheduler::Config,
 	Runtime: pallet_base_fee::Config,
+	Runtime: AuthorSlotFilterConfig,
 	Council: GetStorageVersion + PalletInfoAccess + 'static,
 	Tech: GetStorageVersion + PalletInfoAccess + 'static,
 {
@@ -534,6 +588,10 @@ where
 		// TODO: this is a lot of allocation to do upon every get() call. this *should* be avoided
 		// except when pallet_migrations undergoes a runtime upgrade -- but TODO: review
 
+		let migration_author_slot_filter_eligible_ratio_to_eligibility_count =
+			AuthorSlotFilterEligibleRatioToEligiblityCount::<Runtime>(Default::default());
+		let migration_author_mapping_add_keys_to_registration_info =
+			AuthorMappingAddKeysToRegistrationInfo::<Runtime>(Default::default());
 		vec![
 			// completed in runtime 800
 			// Box::new(migration_author_mapping_twox_to_blake),
@@ -552,6 +610,8 @@ where
 			// Box::new(migration_parachain_staking_patch_incorrect_delegation_sums),
 			// completed in runtime 1300
 			// Box::new(migration_base_fee),
+			Box::new(migration_author_slot_filter_eligible_ratio_to_eligibility_count),
+			Box::new(migration_author_mapping_add_keys_to_registration_info),
 		]
 	}
 }
