@@ -1,52 +1,10 @@
-# ![Moonbeam](media/moonbeam-cover.jpg)
 
-![Tests](https://github.com/PureStake/moonbeam/workflows/Release/badge.svg)
+**SPF EVM Compatible Part built with [Substrate](https://substrate.io).**
 
-**An Ethereum compatible [Parachain](https://polkadot.network/technology/) built with [Substrate](https://substrate.dev).**
-
-👉 _Discover the Moonbeam project at [moonbeam.network](https://moonbeam.network)._<br>
-👉 _Learn to [use the Moonbeam network](https://docs.moonbeam.network/) with our technical docs._<br>
-👉 _Reference our [crate-level docs (rustdocs)](https://purestake.github.io/moonbeam) to contribute._
-
-## Run an alphanet node with Docker
-
-Docker images are published for every tagged release. Learn more with `moonbeam --help`.
-
-```bash
-# Join the public testnet
-docker run --network="host" purestake/moonbeam:v0.25.0 --chain alphanet
-```
-
-You can find more detailed instructions to [run a full node in our TestNet](https://docs.moonbeam.network/node-operators/networks/full-node/)
-
-## Run a local development node with Docker
-
-Developers who are building dApps to run on moonbeam, may want a lightweight node to work with
-locally. You can quickly spin up a single node with no relay chain backing it using the development
-service.
-
-```bash
-# Run a dev service node
-docker run --network="host" purestake/moonbeam:v0.25.0 --dev
-```
-
-For more information, see our detailed instructions to [run a development node](https://docs.moonbeam.network/getting-started/local-node/setting-up-a-node/)
-
-### Sealing options
-
-The command above will start the node in instant seal mode. It creates a block when a transaction arrives, similar to Ganache's auto-mine. You can also choose to author blocks at a regular interval, or control authoring manually through the RPC.
-
-```bash
-# Author a block every 6 seconds.
-docker run --network="host" purestake/moonbeam:v0.25.0 --dev --sealing 6000
-
-# Manually control the block authorship and finality
-docker run --network="host" purestake/moonbeam:v0.25.0 --dev --sealing manual
-```
 
 ### Prefunded Development Addresses
 
-Running Moonbeam in development mode will pre-fund several well-known addresses that (mostly) contain the letters "th" in their names to remind you that they are for ethereum-compatible usage. These addresses are derived from
+Running SPF in development mode will pre-fund several well-known addresses that (mostly) contain the letters "th" in their names to remind you that they are for ethereum-compatible usage. These addresses are derived from
 Substrate's canonical mnemonic: `bottom drive obey lake curtain smoke basket hold race lonely fit walk`
 
 ```
@@ -99,65 +57,27 @@ Also, the prefunded default account for testing purposes is:
 - PrivKey: 0x99b3c12287537e38c90a9219d4cb074a89a16e9cdb20bf85728ebd97c343e342
 ```
 
-## Build the Moonbeam Node
+## Build the SPF Node
 
-To build Moonbeam, you will need a proper Substrate development environment. If you've never worked with a Substrate-based blockchain before, you should probably try the [Setting Up a Moonbeam Node](https://docs.moonbeam.network/getting-started/local-node/setting-up-a-node/) docs first.
+To build SPF, you will need a proper Substrate development environment. 
 
-If you need a refresher setting up your Substrate environment, see [Substrate's Getting Started Guide](https://substrate.dev/docs/en/knowledgebase/getting-started/).
-
-Note that cloning master might result in an unstable build. If you want a stable version, check out the [latest releases](https://github.com/PureStake/moonbeam/releases).
+If you need a refresher setting up your Substrate environment, see [Substrate's Getting Started Guide](https://substrate.io/docs/en/knowledgebase/getting-started/).
 
 ```bash
-# Fetch the code
-git clone https://github.com/PureStake/moonbeam
-cd moonbeam
+cd spf-part-evm
 
 # Build the node (The first build will be long (~30min))
 cargo build --release
 ```
 
-## Run tests
-
-Moonbeam has Rust unit tests as well as typescript integration tests. These tests are run in CI, and can also be run locally.
-
-```bash
-# Run the Rust unit tests
-cargo test
-```
-
-```bash
-# Install dependencies for integration tests
-cd moonbeam-types-bundle
-npm i
-
-cd ../tests
-npm i
-
-# Run integration tests
-npm test
-```
-
 ## Chain IDs
 
-The Ethereum specification described a numeric Chain Id. The Moonbeam mainnet Chain Id will be 1284
-because it takes 1284 milliseconds for a moonbeam to reach Earth.
+The Ethereum specification described a numeric Chain Id. The SPF mainnet Chain Id will be 1280
 
-Moonbeam nodes support multiple public chains and testnets, with the following Chain Ids.
-
-| Network Description                | Chain ID    |
-| ---------------------------------- | ----------- |
-| Local Parachain TestNet            | 1280        |
-| Local Development TestNet          | 1281        |
-| Reserved for other TestNets        | 1282 - 1283 |
-| Moonbeam (Polkadot)                | 1284        |
-| Moonriver (Kusama)                 | 1285        |
-| Moonrock (Rococo)                  | 1286        |
-| Moonbase Alpha TestNet             | 1287        |
-| Reserved for other public networks | 1288 - 1289 |
 
 ## Runtime Architecture
 
-The Moonbeam Runtime is built using FRAME and consists of pallets from substrate, frontier, cumulus, and `pallets/`.
+The SPF Runtime is built using FRAME and consists of pallets from substrate, frontier, cumulus, and `pallets/`.
 
 From substrate:
 
@@ -180,22 +100,11 @@ From cumulus:
 - _ParachainUpgrade_: A helper to perform runtime upgrades on parachains
 - _ParachainInfo_: A place to store parachain-relevant constants like parachain id
 
-The following pallets are stored in `pallets/`. They are designed for Moonbeam's specific requirements:
+The following pallets are stored in `pallets/`. They are designed for SPF's specific requirements:
 
-- _Ethereum Chain Id_: A place to store the chain id for each Moonbeam network
+- _Ethereum Chain Id_: A place to store the chain id for each SPF network
 - _Author Inherent_: Allows block authors to include their identity in a block via an inherent
 - _Parachain Staking_: Minimal staking pallet that selects collators by total amount at stake
 
 When modifying the git repository for these dependencies, a tool called [diener](https://github.com/bkchr/diener) can be used to replace the git URL and branch for each reference in all `Cargo.toml` files with a single command. This alleviates a lot of the repetitive modifications necessary when changing dependency versions.
 
-## Rustdocs
-
-Rustdocs for the Moonbeam codebase are automatically generated and published
-[here](https://purestake.github.io/moonbeam/moonbeam_runtime/index.html).
-
-## Contribute
-
-Moonbeam is open source under the terms of the GPL3. We welcome contributions. Please review our
-[CONTRIBUTIONS.md](CONTRIBUTIONS.md) document for more information.
-
-Example of version bumping PR (runtime and node): https://github.com/PureStake/moonbeam/pull/601/files
