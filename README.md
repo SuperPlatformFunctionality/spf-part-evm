@@ -1,6 +1,8 @@
-
 **SPF EVM Compatible Part built with [Substrate](https://substrate.io).**
 
+This is SPF EVM Development Repo, and will be deprecated in months, 
+because all the Critical code and modular will be part of new Repo of SPF mainnet，
+along with other parts include RMRK NFT part ,decentralized logic Part and some other features.
 
 ### Prefunded Development Addresses
 
