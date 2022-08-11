@@ -1,4 +1,4 @@
-# ![SPF](media/SPF.png)
+# ![SPF](media/SPF-EVM-cover.jpg)
 
 **SPF EVM Compatible Part built with [Substrate](https://substrate.io).**
 
