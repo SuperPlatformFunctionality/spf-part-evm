@@ -34,12 +34,16 @@ use frame_support::{
 };
 use moonbase_runtime::{
 	asset_config::AssetRegistrarMetadata, asset_config::LocalAssetInstance, get,
-	xcm_config::AssetType, AccountId, AssetId, AssetManager, Assets, Balances, BaseFee,
-	BlockWeights, Call, CrowdloanRewards, Event, LocalAssets, ParachainStaking, PolkadotXcm,
-	Precompiles, Runtime, System, XTokens, XcmTransactor, FOREIGN_ASSET_PRECOMPILE_ADDRESS_PREFIX,
-	LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX,
+	xcm_config::AssetType, AccountId, AssetId, AssetManager, Assets, Balances, BaseFee, Call,
+	CrowdloanRewards, Event, LocalAssets, ParachainStaking, PolkadotXcm, Precompiles, Runtime,
+	RuntimeBlockWeights, System, TransactionPayment, XTokens, XcmTransactor,
+	FOREIGN_ASSET_PRECOMPILE_ADDRESS_PREFIX, LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX,
 };
+use polkadot_parachain::primitives::Sibling;
 use precompile_utils::testing::MockHandle;
+use xcm_builder::{ParentIsPreset, SiblingParachainConvertsVia};
+use xcm_executor::traits::Convert as XcmConvert;
+use xcm_primitives::Account20Hash;
 
 use nimbus_primitives::NimbusId;
 use pallet_evm::GasWeightMapping;
@@ -51,6 +55,7 @@ use pallet_evm_precompile_randomness::{
 	EXECUTE_EXPIRATION_ESTIMATED_COST, FULFILLMENT_OVERHEAD_ESTIMATED_COST,
 	INCREASE_REQUEST_FEE_ESTIMATED_COST, REQUEST_RANDOMNESS_ESTIMATED_COST,
 };
+use pallet_evm_precompile_xcm_utils::Action as XcmUtilsAction;
 use pallet_evm_precompile_xtokens::Action as XtokensAction;
 use pallet_evm_precompileset_assets_erc20::{
 	AccountIdAssetIdConversion, Action as AssetAction, SELECTOR_LOG_APPROVAL, SELECTOR_LOG_TRANSFER,
@@ -1999,9 +2004,11 @@ fn length_fee_is_sensible() {
 
 #[test]
 fn multiplier_can_grow_from_zero() {
+	use frame_support::traits::Get;
+
 	let minimum_multiplier = moonbase_runtime::MinimumMultiplier::get();
 	let target = moonbase_runtime::TargetBlockFullness::get()
-		* BlockWeights::get()
+		* RuntimeBlockWeights::get()
 			.get(DispatchClass::Normal)
 			.max_total
 			.unwrap();
@@ -2021,11 +2028,13 @@ fn multiplier_can_grow_from_zero() {
 #[test]
 #[ignore] // test runs for a very long time
 fn multiplier_growth_simulator() {
+	use frame_support::traits::Get;
+
 	// assume the multiplier is initially set to its minimum. We update it with values twice the
 	//target (target is 25%, thus 50%) and we see at which point it reaches 1.
 	let mut multiplier = moonbase_runtime::MinimumMultiplier::get();
 	let block_weight = moonbase_runtime::TargetBlockFullness::get()
-		* BlockWeights::get()
+		* RuntimeBlockWeights::get()
 			.get(DispatchClass::Normal)
 			.max_total
 			.unwrap()
@@ -2490,8 +2499,12 @@ fn author_mapping_register_and_set_keys() {
 					ALICE,
 					author_mapping_precompile_address,
 					EvmDataWriter::new_with_selector(AuthorMappingAction::SetKeys)
-						.write(sp_core::H256::from([1u8; 32]))
-						.write(sp_core::H256::from([3u8; 32]))
+						.write(Bytes(
+							EvmDataWriter::new()
+								.write(sp_core::H256::from([1u8; 32]))
+								.write(sp_core::H256::from([3u8; 32]))
+								.build(),
+						))
 						.build(),
 				)
 				.expect_cost(16280)
@@ -2512,8 +2525,12 @@ fn author_mapping_register_and_set_keys() {
 					ALICE,
 					author_mapping_precompile_address,
 					EvmDataWriter::new_with_selector(AuthorMappingAction::SetKeys)
-						.write(sp_core::H256::from([2u8; 32]))
-						.write(sp_core::H256::from([4u8; 32]))
+						.write(Bytes(
+							EvmDataWriter::new()
+								.write(sp_core::H256::from([2u8; 32]))
+								.write(sp_core::H256::from([4u8; 32]))
+								.build(),
+						))
 						.build(),
 				)
 				.expect_cost(16280)
@@ -2531,12 +2548,94 @@ fn author_mapping_register_and_set_keys() {
 }
 
 #[test]
+fn test_xcm_utils_ml_tp_account() {
+	ExtBuilder::default().build().execute_with(|| {
+		let xcm_utils_precompile_address = H160::from_low_u64_be(2060);
+		let expected_address_parent: H160 =
+			ParentIsPreset::<AccountId>::convert_ref(MultiLocation::parent())
+				.unwrap()
+				.into();
+
+		Precompiles::new()
+			.prepare_test(
+				ALICE,
+				xcm_utils_precompile_address,
+				EvmDataWriter::new_with_selector(XcmUtilsAction::MultiLocationToAddress)
+					.write(MultiLocation::parent())
+					.build(),
+			)
+			.expect_cost(1000)
+			.expect_no_logs()
+			.execute_returns(
+				EvmDataWriter::new()
+					.write(Address(expected_address_parent))
+					.build(),
+			);
+
+		let parachain_2000_multilocation = MultiLocation::new(1, X1(Parachain(2000)));
+		let expected_address_parachain: H160 =
+			SiblingParachainConvertsVia::<Sibling, AccountId>::convert_ref(
+				parachain_2000_multilocation.clone(),
+			)
+			.unwrap()
+			.into();
+
+		Precompiles::new()
+			.prepare_test(
+				ALICE,
+				xcm_utils_precompile_address,
+				EvmDataWriter::new_with_selector(XcmUtilsAction::MultiLocationToAddress)
+					.write(parachain_2000_multilocation)
+					.build(),
+			)
+			.expect_cost(1000)
+			.expect_no_logs()
+			.execute_returns(
+				EvmDataWriter::new()
+					.write(Address(expected_address_parachain))
+					.build(),
+			);
+
+		let alice_in_parachain_2000_multilocation = MultiLocation::new(
+			1,
+			X2(
+				Parachain(2000),
+				AccountKey20 {
+					network: Any,
+					key: ALICE,
+				},
+			),
+		);
+		let expected_address_alice_in_parachain_2000: H160 =
+			Account20Hash::<AccountId>::convert_ref(alice_in_parachain_2000_multilocation.clone())
+				.unwrap()
+				.into();
+
+		Precompiles::new()
+			.prepare_test(
+				ALICE,
+				xcm_utils_precompile_address,
+				EvmDataWriter::new_with_selector(XcmUtilsAction::MultiLocationToAddress)
+					.write(alice_in_parachain_2000_multilocation)
+					.build(),
+			)
+			.expect_cost(1000)
+			.expect_no_logs()
+			.execute_returns(
+				EvmDataWriter::new()
+					.write(Address(expected_address_alice_in_parachain_2000))
+					.build(),
+			);
+	});
+}
+
+#[test]
 fn precompile_existence() {
 	ExtBuilder::default().build().execute_with(|| {
 		let precompiles = Precompiles::new();
 		let precompile_addresses: std::collections::BTreeSet<_> = vec![
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 2048, 2049, 2050, 2051, 2052, 2053, 2054,
-			2055, 2056, 2057, 2058,
+			2055, 2056, 2057, 2058, 2059, 2060,
 		]
 		.into_iter()
 		.map(H160::from_low_u64_be)
@@ -2598,6 +2697,27 @@ fn base_fee_should_default_to_associate_type_value() {
 		assert_eq!(
 			BaseFee::base_fee_per_gas(),
 			(1 * GIGAWEI * SUPPLY_FACTOR).into()
+		);
+	});
+}
+
+#[test]
+fn substrate_based_fees_zero_txn_costs_only_base_extrinsic() {
+	use frame_support::weights::{DispatchInfo, Pays};
+	use moonbase_runtime::{currency, EXTRINSIC_BASE_WEIGHT};
+
+	ExtBuilder::default().build().execute_with(|| {
+		let size_bytes = 0;
+		let tip = 0;
+		let dispatch_info = DispatchInfo {
+			weight: 0,
+			class: DispatchClass::Normal,
+			pays_fee: Pays::Yes,
+		};
+
+		assert_eq!(
+			TransactionPayment::compute_fee(size_bytes, &dispatch_info, tip),
+			EXTRINSIC_BASE_WEIGHT as u128 * currency::WEIGHT_FEE,
 		);
 	});
 }

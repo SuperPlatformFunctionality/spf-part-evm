@@ -484,11 +484,15 @@ impl pallet_collective::Config<TechCommitteeInstance> for Runtime {
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
+// The purpose of this offset is to ensure that a democratic proposal will not apply in the same
+// block as a round change.
+const ENACTMENT_OFFSET: u32 = 300;
+
 impl pallet_democracy::Config for Runtime {
 	type Proposal = Call;
 	type Event = Event;
 	type Currency = Balances;
-	type EnactmentPeriod = ConstU32<{ 1 * DAYS }>;
+	type EnactmentPeriod = ConstU32<{ 1 * DAYS + ENACTMENT_OFFSET }>;
 	type LaunchPeriod = ConstU32<{ 1 * DAYS }>;
 	type VotingPeriod = ConstU32<{ 5 * DAYS }>;
 
@@ -970,6 +974,12 @@ impl Contains<Call> for NormalFilter {
 				pallet_xcm_transactor::Call::transact_through_signed { .. } => false,
 				_ => true,
 			},
+			// We filter EVM calls as allowing these calls can cause potential attack vectors
+			// via precompiles (e.g. proxy precompile can erroneously allow privilege escalation)
+			// See https://github.com/PureStake/sr-moonbeam/issues/30
+			// Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+			// this can be seen as an additional security
+			Call::EVM(_) => false,
 			_ => true,
 		}
 	}

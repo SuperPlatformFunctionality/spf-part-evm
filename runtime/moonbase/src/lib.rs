@@ -37,7 +37,7 @@ use account::AccountId20;
 // Re-export required by get! macro.
 pub use frame_support::traits::Get;
 use frame_support::{
-	construct_runtime,
+	construct_runtime, ensure,
 	pallet_prelude::DispatchResult,
 	parameter_types,
 	traits::{
@@ -80,7 +80,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
 		BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable, IdentityLookup,
-		PostDispatchInfoOf, UniqueSaturatedInto,
+		PostDispatchInfoOf, UniqueSaturatedInto, Zero,
 	},
 	transaction_validity::{
 		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError,
@@ -89,7 +89,7 @@ use sp_runtime::{
 	SaturatedConversion,
 };
 use sp_std::{
-	convert::{From, Into, TryFrom},
+	convert::{From, Into},
 	prelude::*,
 };
 #[cfg(feature = "std")]
@@ -191,13 +191,37 @@ pub fn native_version() -> NativeVersion {
 }
 
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+const NORMAL_WEIGHT: Weight = MAXIMUM_BLOCK_WEIGHT * 3 / 4;
+// Here we assume Ethereum's base fee of 21000 gas and convert to weight, but we
+// subtract roughly the cost of a balance transfer from it (about 1/3 the cost)
+// and some cost to account for per-byte-fee.
+// TODO: we should use benchmarking's overhead feature to measure this
+pub const EXTRINSIC_BASE_WEIGHT: Weight = 10000 * WEIGHT_PER_GAS;
+
+pub struct RuntimeBlockWeights;
+impl Get<frame_system::limits::BlockWeights> for RuntimeBlockWeights {
+	fn get() -> frame_system::limits::BlockWeights {
+		frame_system::limits::BlockWeights::builder()
+			.for_class(DispatchClass::Normal, |weights| {
+				weights.base_extrinsic = EXTRINSIC_BASE_WEIGHT;
+				weights.max_total = NORMAL_WEIGHT.into();
+			})
+			.for_class(DispatchClass::Operational, |weights| {
+				weights.max_total = MAXIMUM_BLOCK_WEIGHT.into();
+				weights.reserved = (MAXIMUM_BLOCK_WEIGHT - NORMAL_WEIGHT).into();
+			})
+			.avg_block_initialization(Perbill::from_percent(10))
+			.build()
+			.expect("Provided BlockWeight definitions are valid, qed")
+	}
+}
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
-	/// We allow for one half second of compute with a 6 second average block time.
-	/// These values are dictated by Polkadot for the parachain.
-	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
-		::with_sensible_defaults(MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
+	/// TODO: this is left here so that `impl_runtime_apis_plus_common` will find the same type for
+	/// `BlockWeights` in all runtimes. It can probably be removed once the custom
+	/// `RuntimeBlockWeights` has been pushed to each runtime.
+	pub BlockWeights: frame_system::limits::BlockWeights = RuntimeBlockWeights::get();
 	/// We allow for 5 MB blocks.
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
 		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
@@ -227,7 +251,7 @@ impl frame_system::Config for Runtime {
 	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
 	type BlockHashCount = ConstU32<256>;
 	/// Maximum weight of each block. With a default weight system of 1byte == 1weight, 4mb is ok.
-	type BlockWeights = BlockWeights;
+	type BlockWeights = RuntimeBlockWeights;
 	/// Maximum size of all encoded transactions (in bytes) that are allowed in one block.
 	type BlockLength = BlockLength;
 	/// Runtime version.
@@ -442,7 +466,7 @@ impl pallet_evm::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = NORMAL_DISPATCH_RATIO * BlockWeights::get().max_block;
+	pub MaximumSchedulerWeight: Weight = NORMAL_DISPATCH_RATIO * RuntimeBlockWeights::get().max_block;
 }
 
 impl pallet_scheduler::Config for Runtime {
@@ -492,11 +516,15 @@ impl pallet_collective::Config<TechCommitteeInstance> for Runtime {
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
+// The purpose of this offset is to ensure that a democratic proposal will not apply in the same
+// block as a round change.
+const ENACTMENT_OFFSET: u32 = 300;
+
 impl pallet_democracy::Config for Runtime {
 	type Proposal = Call;
 	type Event = Event;
 	type Currency = Balances;
-	type EnactmentPeriod = ConstU32<{ 1 * DAYS }>;
+	type EnactmentPeriod = ConstU32<{ 1 * DAYS + ENACTMENT_OFFSET }>;
 	type LaunchPeriod = ConstU32<{ 1 * DAYS }>;
 	type VotingPeriod = ConstU32<{ 5 * DAYS }>;
 	type VoteLockingPeriod = ConstU32<{ 1 * DAYS }>;
@@ -636,11 +664,29 @@ impl pallet_ethereum::Config for Runtime {
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
+pub struct EthereumXcmEnsureProxy;
+impl xcm_primitives::EnsureProxy<AccountId> for EthereumXcmEnsureProxy {
+	fn ensure_ok(delegator: AccountId, delegatee: AccountId) -> Result<(), &'static str> {
+		// The EVM implicitely contains an Any proxy, so we only allow for "Any" proxies
+		let def: pallet_proxy::ProxyDefinition<AccountId, ProxyType, BlockNumber> =
+			pallet_proxy::Pallet::<Runtime>::find_proxy(
+				&delegator,
+				&delegatee,
+				Some(ProxyType::Any),
+			)
+			.map_err(|_| "proxy error: expected `ProxyType::Any`")?;
+		// We only allow to use it for delay zero proxies, as the call will immediatly be executed
+		ensure!(def.delay.is_zero(), "proxy delay is Non-zero`");
+		Ok(())
+	}
+}
+
 impl pallet_ethereum_xcm::Config for Runtime {
 	type InvalidEvmTransactionError = pallet_ethereum::InvalidTransactionWrapper;
 	type ValidatedTransaction = pallet_ethereum::ValidatedTransaction<Self>;
 	type XcmEthereumOrigin = pallet_ethereum_xcm::EnsureXcmEthereumTransaction;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
+	type EnsureProxy = EthereumXcmEnsureProxy;
 }
 
 parameter_types! {
@@ -957,6 +1003,12 @@ impl Contains<Call> for NormalFilter {
 				pallet_proxy::Call::kill_anonymous { .. } => false,
 				_ => true,
 			},
+			// We filter EVM calls as allowing these calls can cause potential attack vectors
+			// via precompiles (e.g. proxy precompile can erroneously allow privilege escalation)
+			// See https://github.com/PureStake/sr-moonbeam/issues/30
+			// Note: It is also assumed that EVM calls are only allowed through `Origin::Root` so
+			// this can be seen as an additional security
+			Call::EVM(_) => false,
 			_ => true,
 		}
 	}
@@ -1502,5 +1554,30 @@ mod tests {
 			),
 			50
 		);
+	}
+
+	#[test]
+	fn test_proxy_type_can_be_decoded_from_valid_values() {
+		let test_cases = vec![
+			// (input, expected)
+			(0u8, ProxyType::Any),
+			(1, ProxyType::NonTransfer),
+			(2, ProxyType::Governance),
+			(3, ProxyType::Staking),
+			(4, ProxyType::CancelProxy),
+			(5, ProxyType::Balances),
+			(6, ProxyType::AuthorMapping),
+			(7, ProxyType::IdentityJudgement),
+		];
+
+		for (input, expected) in test_cases {
+			let actual = ProxyType::decode(&mut input.to_le_bytes().as_slice());
+			assert_eq!(
+				Ok(expected),
+				actual,
+				"failed decoding ProxyType for value '{}'",
+				input
+			);
+		}
 	}
 }
