@@ -99,16 +99,10 @@ From frontier:
 - _EVM_: Encapsulates execution logic for an Ethereum Virtual Machine
 - _Ethereum_: Ethereum-style data encoding and access for the EVM.
 
-From cumulus:
-
-- _ParachainUpgrade_: A helper to perform runtime upgrades on parachains
-- _ParachainInfo_: A place to store parachain-relevant constants like parachain id
-
 The following pallets are stored in `pallets/`. They are designed for SPF's specific requirements:
 
 - _Ethereum Chain Id_: A place to store the chain id for each SPF network
 - _Author Inherent_: Allows block authors to include their identity in a block via an inherent
-- _Parachain Staking_: Minimal staking pallet that selects collators by total amount at stake
 
 When modifying the git repository for these dependencies, a tool called [diener](https://github.com/bkchr/diener) can be used to replace the git URL and branch for each reference in all `Cargo.toml` files with a single command. This alleviates a lot of the repetitive modifications necessary when changing dependency versions.
 
