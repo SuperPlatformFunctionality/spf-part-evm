@@ -22,20 +22,10 @@
 use clap::Parser;
 use cli_opt::{account_key::GenerateAccountKey, EthApi, Sealing};
 use sc_cli::{Error as CliError, SubstrateCli};
-use service::chain_spec;
-use std::path::PathBuf;
 
 /// Sub-commands supported by the collator.
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-	/// Export the genesis state of the parachain.
-	#[clap(name = "export-genesis-state")]
-	ExportGenesisState(ExportGenesisStateCommand),
-
-	/// Export the genesis wasm of the parachain.
-	#[clap(name = "export-genesis-wasm")]
-	ExportGenesisWasm(ExportGenesisWasmCommand),
-
 	/// Build a chain specification.
 	BuildSpec(BuildSpecCommand),
 
@@ -52,7 +42,7 @@ pub enum Subcommand {
 	ImportBlocks(sc_cli::ImportBlocksCmd),
 
 	/// Remove the whole chain.
-	PurgeChain(cumulus_client_cli::PurgeChainCmd),
+	PurgeChain(sc_cli::PurgeChainCmd),
 
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
@@ -61,14 +51,6 @@ pub enum Subcommand {
 	/// The pallet benchmarking moved to the `pallet` sub-command.
 	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
-
-	/// Try some command against runtime state.
-	#[cfg(feature = "try-runtime")]
-	TryRuntime(try_runtime_cli::TryRuntimeCmd),
-
-	/// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
-	#[cfg(not(feature = "try-runtime"))]
-	TryRuntime,
 
 	/// Key management cli utilities
 	#[clap(subcommand)]
@@ -91,46 +73,12 @@ pub struct BuildSpecCommand {
 	pub mnemonic: Option<String>,
 }
 
-/// Command for exporting the genesis state of the parachain
-#[derive(Debug, Parser)]
-pub struct ExportGenesisStateCommand {
-	/// Output file name or stdout if unspecified.
-	#[clap(value_parser)]
-	pub output: Option<PathBuf>,
 
-	/// Id of the parachain this state is for.
-	#[clap(long)]
-	pub parachain_id: Option<u32>,
-
-	/// Write output in binary. Default is to write in hex.
-	#[clap(short, long)]
-	pub raw: bool,
-
-	/// The name of the chain for that the genesis state should be exported.
-	#[clap(long)]
-	pub chain: Option<String>,
-}
-
-/// Command for exporting the genesis wasm file.
-#[derive(Debug, Parser)]
-pub struct ExportGenesisWasmCommand {
-	/// Output file name or stdout if unspecified.
-	#[clap(value_parser)]
-	pub output: Option<PathBuf>,
-
-	/// Write output in binary. Default is to write in hex.
-	#[clap(short, long)]
-	pub raw: bool,
-
-	/// The name of the chain for that the genesis wasm file should be exported.
-	#[clap(long)]
-	pub chain: Option<String>,
-}
 
 #[derive(Debug, Parser)]
 pub struct RunCmd {
 	#[clap(flatten)]
-	pub base: cumulus_client_cli::RunCmd,
+	pub base: sc_cli::RunCmd,
 
 	/// Enable the development service to run without a backing relay chain
 	#[clap(long)]
@@ -141,11 +89,6 @@ pub struct RunCmd {
 	/// Options are "instant", "manual", or timer interval in milliseconds
 	#[clap(long, default_value = "instant")]
 	pub sealing: Sealing,
-
-	/// Public authoring identity to be inserted in the author inherent
-	/// This is not currently used, but we may want a way to use it in the dev service.
-	// #[clap(long)]
-	// pub author_id: Option<NimbusId>,
 
 	/// Enable EVM tracing module on a non-authority node.
 	#[clap(
@@ -190,18 +133,6 @@ pub struct RunCmd {
 	#[clap(long, default_value = "10000")]
 	pub max_past_logs: u32,
 
-	/// Force using Moonbase native runtime.
-	#[clap(long = "force-moonbase")]
-	pub force_moonbase: bool,
-
-	/// Force using Moonriver native runtime.
-	#[clap(long = "force-moonriver")]
-	pub force_moonriver: bool,
-
-	/// Id of the parachain this collator collates for.
-	#[clap(long)]
-	pub parachain_id: Option<u32>,
-
 	/// Maximum fee history cache size.
 	#[clap(long, default_value = "2048")]
 	pub fee_history_limit: u64,
@@ -218,7 +149,7 @@ pub struct RunCmd {
 }
 
 impl std::ops::Deref for RunCmd {
-	type Target = cumulus_client_cli::RunCmd;
+	type Target = sc_cli::RunCmd;
 
 	fn deref(&self) -> &Self::Target {
 		&self.base
@@ -258,40 +189,5 @@ pub struct Cli {
 
 	#[clap(flatten)]
 	pub run: RunCmd,
-
-	/// Relaychain arguments
-	#[clap(raw = true)]
-	pub relaychain_args: Vec<String>,
 }
 
-#[derive(Debug)]
-pub struct RelayChainCli {
-	/// The actual relay chain cli object.
-	pub base: polkadot_cli::RunCmd,
-
-	/// Optional chain id that should be passed to the relay chain.
-	pub chain_id: Option<String>,
-
-	/// The base path that should be used by the relay chain.
-	pub base_path: Option<PathBuf>,
-}
-
-impl RelayChainCli {
-	/// Parse the relay chain CLI parameters using the para chain `Configuration`.
-	pub fn new<'a>(
-		para_config: &sc_service::Configuration,
-		relay_chain_args: impl Iterator<Item = &'a String>,
-	) -> Self {
-		let extension = chain_spec::Extensions::try_get(&*para_config.chain_spec);
-		let chain_id = extension.map(|e| e.relay_chain.clone());
-		let base_path = para_config
-			.base_path
-			.as_ref()
-			.map(|x| x.path().join("polkadot"));
-		Self {
-			base_path,
-			chain_id,
-			base: polkadot_cli::RunCmd::parse_from(relay_chain_args),
-		}
-	}
-}
