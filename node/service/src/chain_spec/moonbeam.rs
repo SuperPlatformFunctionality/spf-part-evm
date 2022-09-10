@@ -24,23 +24,40 @@ use crate::chain_spec::{derive_bip44_pairs_from_mnemonic, get_account_id_from_pa
 use crate::chain_spec::{generate_accounts, get_from_seed, Extensions};
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
-use moonbase_runtime::EligibilityValue;
+use moonbeam_runtime::EligibilityValue;
 use moonbeam_runtime::{
-	currency::GLMR, currency::SUPPLY_FACTOR, get, AccountId, AuthorFilterConfig,
-	AuthorMappingConfig, Balance, BalancesConfig, CouncilCollectiveConfig, CrowdloanRewardsConfig,
-	DemocracyConfig, EVMConfig, EthereumChainIdConfig, EthereumConfig, GenesisAccount,
-	GenesisConfig, InflationInfo, MaintenanceModeConfig, ParachainInfoConfig,
-	ParachainStakingConfig, PolkadotXcmConfig, Precompiles, Range, SystemConfig,
-	TechCommitteeCollectiveConfig, WASM_BINARY,
+	currency::GLMR, currency::SUPPLY_FACTOR, AccountId, AuraConfig, Balance, BalancesConfig,
+	EVMConfig, EthereumChainIdConfig, EthereumConfig, GenesisAccount, GenesisConfig, GrandpaConfig,
+	InflationInfo, Range, Signature, SystemConfig, HOURS, WASM_BINARY,
 };
 use nimbus_primitives::NimbusId;
 use sc_service::ChainType;
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[cfg(test)]
 use sp_core::ecdsa;
-use sp_runtime::Perbill;
+use sp_core::{sr25519, Pair, Public, H160, U256};
+use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{Perbill, Percent};
+use std::{collections::BTreeMap, str::FromStr};
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+
+type AccountPublic = <Signature as Verify>::Signer;
+
+/// Generate an account ID from seed.
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+}
+
+/// Generate an Aura authority key.
+pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
+	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+}
 
 /// Generate a chain spec for use with the development service.
 pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32>) -> ChainSpec {
@@ -59,22 +76,10 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 		ChainType::Development,
 		move || {
 			testnet_genesis(
-				// Council members: Baltathar, Charleth and Dorothy
-				vec![accounts[1], accounts[2], accounts[3]],
-				// Tech comitee members: Alith and Baltathar
-				vec![accounts[0], accounts[1]],
-				// Collator Candidate: Alice -> Alith
-				vec![(
-					accounts[0],
-					get_from_seed::<NimbusId>("Alice"),
-					1_000 * GLMR * SUPPLY_FACTOR,
-				)],
-				// Delegations
-				vec![],
 				accounts.clone(),
-				1_500_000 * GLMR * SUPPLY_FACTOR,
 				Default::default(), // para_id
-				1281,               //ChainId
+				42,                 //ChainId
+				vec![authority_keys_from_seed("Alice")],
 			)
 		},
 		// Bootnodes
@@ -102,7 +107,7 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 
 /// Generate a default spec for the parachain service. Use this as a starting point when launching
 /// a custom chain.
-pub fn get_chain_spec(para_id: ParaId) -> ChainSpec {
+pub fn get_chain_spec() -> ChainSpec {
 	ChainSpec::from_genesis(
 		// TODO Apps depends on this string to determine whether the chain is an ethereum compat
 		// or not. We should decide the proper strings, and update Apps accordingly.
@@ -112,34 +117,6 @@ pub fn get_chain_spec(para_id: ParaId) -> ChainSpec {
 		ChainType::Local,
 		move || {
 			testnet_genesis(
-				// Council members: Baltathar, Charleth and Dorothy
-				vec![
-					AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
-					AccountId::from(hex!("798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc")),
-					AccountId::from(hex!("773539d4Ac0e786233D90A233654ccEE26a613D9")),
-				],
-				// Tech comitee members: Alith and Baltathar
-				vec![
-					AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
-					AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
-				],
-				// Collator Candidates
-				vec![
-					// Alice -> Alith
-					(
-						AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
-						get_from_seed::<NimbusId>("Alice"),
-						1_000 * GLMR * SUPPLY_FACTOR,
-					),
-					// Bob -> Baltathar
-					(
-						AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
-						get_from_seed::<NimbusId>("Bob"),
-						1_000 * GLMR * SUPPLY_FACTOR,
-					),
-				],
-				// Delegations
-				vec![],
 				// Endowed: Alith, Baltathar, Charleth and Dorothy
 				vec![
 					AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
@@ -147,9 +124,13 @@ pub fn get_chain_spec(para_id: ParaId) -> ChainSpec {
 					AccountId::from(hex!("798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc")),
 					AccountId::from(hex!("773539d4Ac0e786233D90A233654ccEE26a613D9")),
 				],
-				1_500_000 * GLMR * SUPPLY_FACTOR,
-				para_id,
-				1280, //ChainId
+				Default::default(), // para_id
+				1280,               //ChainId
+				vec![
+					authority_keys_from_seed("Alice"),
+					authority_keys_from_seed("Bob"),
+					authority_keys_from_seed("Charlie"),
+				],
 			)
 		},
 		// Bootnodes
@@ -170,11 +151,14 @@ pub fn get_chain_spec(para_id: ParaId) -> ChainSpec {
 		// Extensions
 		Extensions {
 			relay_chain: "polkadot-local".into(),
-			para_id: para_id.into(),
+			para_id: Default::default(),
 		},
 	)
 }
 
+const COLLATOR_COMMISSION: Perbill = Perbill::from_percent(20);
+const PARACHAIN_BOND_RESERVE_PERCENT: Percent = Percent::from_percent(30);
+const BLOCKS_PER_ROUND: u32 = 6 * HOURS;
 pub fn moonbeam_inflation_config() -> InflationInfo<Balance> {
 	fn to_round_inflation(annual: Range<Perbill>) -> Range<Perbill> {
 		use pallet_parachain_staking::inflation::{
@@ -183,7 +167,7 @@ pub fn moonbeam_inflation_config() -> InflationInfo<Balance> {
 		perbill_annual_to_perbill_round(
 			annual,
 			// rounds per year
-			BLOCKS_PER_YEAR / get!(pallet_parachain_staking, DefaultBlocksPerRound, u32),
+			BLOCKS_PER_YEAR / BLOCKS_PER_ROUND,
 		)
 	}
 	let annual = Range {
@@ -205,14 +189,10 @@ pub fn moonbeam_inflation_config() -> InflationInfo<Balance> {
 }
 
 pub fn testnet_genesis(
-	council_members: Vec<AccountId>,
-	tech_comittee_members: Vec<AccountId>,
-	candidates: Vec<(AccountId, NimbusId, Balance)>,
-	delegations: Vec<(AccountId, AccountId, Balance)>,
 	endowed_accounts: Vec<AccountId>,
-	crowdloan_fund_pot: Balance,
 	para_id: ParaId,
 	chain_id: u64,
+	initial_authorities: Vec<(AuraId, GrandpaId)>,
 ) -> GenesisConfig {
 	// This is the simplest bytecode to revert without returning any data.
 	// We will pre-deploy it under all of our precompiles to ensure they can be called from
@@ -233,68 +213,67 @@ pub fn testnet_genesis(
 				.map(|k| (k, 1 << 80))
 				.collect(),
 		},
-		crowdloan_rewards: CrowdloanRewardsConfig {
-			funded_amount: crowdloan_fund_pot,
+		aura: AuraConfig {
+			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 		},
-		parachain_info: ParachainInfoConfig {
-			parachain_id: para_id,
+		grandpa: GrandpaConfig {
+			authorities: initial_authorities
+				.iter()
+				.map(|x| (x.1.clone(), 1))
+				.collect(),
 		},
 		ethereum_chain_id: EthereumChainIdConfig { chain_id },
 		evm: EVMConfig {
 			// We need _some_ code inserted at the precompile address so that
 			// the evm will actually call the address.
-			accounts: Precompiles::used_addresses()
-				.map(|addr| {
-					(
-						addr.into(),
-						GenesisAccount {
-							nonce: Default::default(),
-							balance: Default::default(),
-							storage: Default::default(),
-							code: revert_bytecode.clone(),
-						},
-					)
-				})
-				.collect(),
+			accounts: {
+				let mut map = BTreeMap::new();
+				map.insert(
+					// H160 address of Alice dev account
+					// Derived from SS58 (42 prefix) address
+					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+
+				map.insert(
+					H160::from_str("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+
+				map.insert(
+					// H160 address of CI test runner account
+					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				map
+			},
 		},
 		ethereum: EthereumConfig {},
 		base_fee: Default::default(),
-		democracy: DemocracyConfig::default(),
-		parachain_staking: ParachainStakingConfig {
-			candidates: candidates
-				.iter()
-				.cloned()
-				.map(|(account, _, bond)| (account, bond))
-				.collect(),
-			delegations,
-			inflation_config: moonbeam_inflation_config(),
-		},
-		council_collective: CouncilCollectiveConfig {
-			phantom: Default::default(),
-			members: council_members,
-		},
-		tech_committee_collective: TechCommitteeCollectiveConfig {
-			phantom: Default::default(),
-			members: tech_comittee_members,
-		},
-		author_filter: AuthorFilterConfig {
-			eligible_count: EligibilityValue::new_unchecked(50),
-		},
-		author_mapping: AuthorMappingConfig {
-			mappings: candidates
-				.iter()
-				.cloned()
-				.map(|(account_id, author_id, _)| (author_id, account_id))
-				.collect(),
-		},
-		proxy_genesis_companion: Default::default(),
-		treasury: Default::default(),
-		migrations: Default::default(),
-		maintenance_mode: MaintenanceModeConfig {
-			start_in_maintenance_mode: false,
-		},
-		// This should initialize it to whatever we have set in the pallet
-		polkadot_xcm: PolkadotXcmConfig::default(),
 	}
 }
 
