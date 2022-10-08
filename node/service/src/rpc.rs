@@ -86,8 +86,6 @@ pub struct FullDeps<C, P, A: ChainApi, BE> {
 	pub fee_history_limit: u64,
 	/// Fee history cache.
 	pub fee_history_cache: FeeHistoryCache,
-	/// Channels for manual xcm messages (downward, hrmp)
-	pub xcm_senders: Option<(flume::Sender<Vec<u8>>, flume::Sender<(ParaId, Vec<u8>)>)>,
 	/// Ethereum data access overrides.
 	pub overrides: Arc<OverrideHandle<Block>>,
 	/// Cache for Ethereum block data.
@@ -177,7 +175,6 @@ where
 		max_past_logs,
 		fee_history_limit,
 		fee_history_cache,
-		xcm_senders,
 		overrides,
 		block_data_cache,
 	} = deps;
@@ -213,6 +210,7 @@ where
 			Arc::clone(&block_data_cache),
 			fee_history_cache,
 			fee_history_limit,
+			10,
 		)
 		.into_rpc(),
 	)?;
@@ -266,15 +264,6 @@ where
 		)?;
 	};
 
-	if let Some((downward_message_channel, hrmp_message_channel)) = xcm_senders {
-		io.merge(
-			ManualXcm {
-				downward_message_channel,
-				hrmp_message_channel,
-			}
-			.into_rpc(),
-		)?;
-	}
 
 	if let Some(tracing_config) = maybe_tracing_config {
 		if let Some(trace_filter_requester) = tracing_config.tracing_requesters.trace {
