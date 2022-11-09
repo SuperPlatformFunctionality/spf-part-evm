@@ -1,9 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.3;
+
+/// @dev The CrowdloanRewards contract's address.
+address constant CROWDLOAN_REWARDS_ADDRESS = 0x0000000000000000000000000000000000000801;
+
+/// @dev The CrowdloanRewards contract's instance.
+CrowdloanRewards constant CROWDLOAN_REWARDS_CONTRACT = CrowdloanRewards(
+    CROWDLOAN_REWARDS_ADDRESS
+);
 
 /// @author The Moonbeam Team
-/// @title The interface through which solidity contracts will interact with Crowdloan Rewards
-/// We follow this same interface including four-byte function selectors, in the precompile that
+/// @title Pallet Crowdloan Rewards Interface
+/// @dev The interface through which solidity contracts will interact with Crowdloan Rewards. We
+/// follow this same interface including four-byte function selectors, in the precompile that
 /// wraps the pallet
 /// @custom:address 0x0000000000000000000000000000000000000801
 interface CrowdloanRewards {
