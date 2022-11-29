@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.3;
+
+/// @dev The Proxy contract's address.
+address constant PROXY_ADDRESS = 0x000000000000000000000000000000000000080b;
+
+/// @dev The Proxy contract's instance.
+Proxy constant PROXY_CONTRACT = Proxy(PROXY_ADDRESS);
 
 /// @author The Moonbeam Team
+/// @title Pallet Proxy Interface
 /// @title The interface through which solidity contracts will interact with the Proxy pallet
 /// @custom:address 0x000000000000000000000000000000000000080b
 interface Proxy {
