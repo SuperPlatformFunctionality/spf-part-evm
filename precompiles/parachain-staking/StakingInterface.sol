@@ -1,8 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.3;
+
+/// @dev The ParachainStaking contract's address.
+address constant PARACHAIN_STAKING_ADDRESS = 0x0000000000000000000000000000000000000800;
+
+/// @dev The ParachainStaking contract's instance.
+ParachainStaking constant PARACHAIN_STAKING_CONTRACT = ParachainStaking(
+    PARACHAIN_STAKING_ADDRESS
+);
 
 /// @author The Moonbeam Team
-/// @title The interface through which solidity contracts will interact with Parachain Staking
+/// @title Pallet Parachain Staking Interface
+/// @dev The interface through which solidity contracts will interact with Parachain Staking
 /// We follow this same interface including four-byte function selectors, in the precompile that
 /// wraps the pallet
 /// @custom:address 0x0000000000000000000000000000000000000800
@@ -100,6 +109,16 @@ interface ParachainStaking {
         view
         returns (bool);
 
+    /// @dev Returns the percent value of auto-compound set for a delegation
+    /// @custom:selector b4d4c7fd
+    /// @param delegator the delegator that made the delegation
+    /// @param candidate the candidate for which the delegation was made
+    /// @return Percent of rewarded amount that is auto-compounded on each payout
+    function delegationAutoCompound(address delegator, address candidate)
+        external
+        view
+        returns (uint8);
+
     /// @dev Join the set of collator candidates
     /// @custom:selector 1f2f83ad
     /// @param amount The amount self-bonded by the caller to become a collator candidate
@@ -165,12 +184,30 @@ interface ParachainStaking {
         uint256 delegatorDelegationCount
     ) external;
 
-    /// schedule individual revokes instead
+    /// @dev Make a delegation in support of a collator candidate
+    /// @custom:selector 4b8bc9bf
+    /// @param candidate The address of the supported collator candidate
+    /// @param amount The amount bonded in support of the collator candidate
+    /// @param autoCompound The percent of reward that should be auto-compounded
+    /// @param candidateDelegationCount The number of delegations in support of the candidate
+    /// @param candidateAutoCompoundingDelegationCount The number of auto-compounding delegations
+    /// in support of the candidate
+    /// @param delegatorDelegationCount The number of existing delegations by the caller
+    function delegateWithAutoCompound(
+        address candidate,
+        uint256 amount,
+        uint8 autoCompound,
+        uint256 candidateDelegationCount,
+        uint256 candidateAutoCompoundingDelegationCount,
+        uint256 delegatorDelegationCount
+    ) external;
+
+    /// @notice DEPRECATED use batch util with scheduleRevokeDelegation for all delegations
     /// @dev Request to leave the set of delegators
     /// @custom:selector f939dadb
     function scheduleLeaveDelegators() external;
 
-    /// execute individual revokes instead
+    /// @notice DEPRECATED use batch util with executeDelegationRequest for all delegations
     /// @dev Execute request to leave the set of delegators and revoke all delegations
     /// @custom:selector fb1e2bf9
     /// @param delegator The leaving delegator
@@ -180,7 +217,7 @@ interface ParachainStaking {
         uint256 delegatorDelegationCount
     ) external;
 
-    /// cancel individual revokes instead
+    /// @notice DEPRECATED use batch util with cancelDelegationRequest for all delegations
     /// @dev Cancel request to leave the set of delegators
     /// @custom:selector f7421284
     function cancelLeaveDelegators() external;
@@ -214,4 +251,18 @@ interface ParachainStaking {
     /// @custom:selector c90eee83
     /// @param candidate The address of the candidate
     function cancelDelegationRequest(address candidate) external;
+
+    /// @dev Sets an auto-compound value for a delegation
+    /// @custom:selector faa1786f
+    /// @param candidate The address of the supported collator candidate
+    /// @param value The percent of reward that should be auto-compounded
+    /// @param candidateAutoCompoundingDelegationCount The number of auto-compounding delegations
+    /// in support of the candidate
+    /// @param delegatorDelegationCount The number of existing delegations by the caller
+    function setAutoCompound(
+        address candidate,
+        uint8 value,
+        uint256 candidateAutoCompoundingDelegationCount,
+        uint256 delegatorDelegationCount
+    ) external;
 }
