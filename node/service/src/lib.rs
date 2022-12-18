@@ -130,7 +130,7 @@ pub trait IdentifyVariant {
 
 impl IdentifyVariant for Box<dyn ChainSpec> {
 	fn is_moonbeam(&self) -> bool {
-		self.id().starts_with("moonbeam")
+		self.id().starts_with("moonbeam") || self.id().starts_with("spf")
 	}
 
 	fn is_dev(&self) -> bool {
