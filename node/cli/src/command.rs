@@ -19,7 +19,7 @@
 use crate::cli::{Cli, Subcommand};
 use cli_opt::{EthApi, RpcConfig};
 use frame_benchmarking_cli::BenchmarkCmd;
-#[cfg(feature = "westend-native")]
+//#[cfg(feature = "westend-native")]
 use sc_cli::{
 	Result, RuntimeVersion, SubstrateCli,
 };
