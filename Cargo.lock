@@ -5612,14 +5612,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "moonkey"
-version = "0.1.1"
-dependencies = [
- "clap 3.2.22",
- "moonbeam-cli-opt",
-]
-
-[[package]]
 name = "more-asserts"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12455,6 +12447,14 @@ dependencies = [
  "tempfile",
  "tracing-core",
  "xcm-builder",
+]
+
+[[package]]
+name = "spfkey"
+version = "0.1.1"
+dependencies = [
+ "clap 3.2.22",
+ "moonbeam-cli-opt",
 ]
 
 [[package]]

@@ -34,8 +34,10 @@ fn load_spec(
 		"moonbeam" | "" => Box::new(chain_spec::RawChainSpec::from_json_bytes(
 			&include_bytes!("../../../specs/moonbeam/parachain-embedded-specs.json")[..],
 		)?),
+
 		#[cfg(feature = "moonbeam-native")]
 		"dev" => Box::new(chain_spec::moonbeam::development_chain_spec(None, None)),
+
 		#[cfg(feature = "moonbeam-native")]
 		"local" => Box::new(chain_spec::moonbeam::get_chain_spec()),
 		path => {
@@ -47,7 +49,7 @@ fn load_spec(
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
-		"Moonbeam Parachain Collator".into()
+		"SPF Mainnet Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -73,7 +75,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn copyright_start_year() -> i32 {
-		2019
+		2020
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -84,6 +86,7 @@ impl SubstrateCli for Cli {
 		match spec {
 			#[cfg(feature = "moonbeam-native")]
 			spec if spec.is_moonbeam() => return &service::moonbeam_runtime::VERSION,
+
 			_ => panic!("invalid chain spec"),
 		}
 	}

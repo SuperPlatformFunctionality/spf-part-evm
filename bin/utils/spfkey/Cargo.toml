@@ -1,14 +1,14 @@
 [package]
-name = "moonkey"
-authors = [ "PureStake" ]
-description = "Moonbeam Key Tool"
+name = "spfkey"
+authors = [ "Super Platform Functionality Dev Team" ]
+description = "SPF Key Tool"
 edition = "2021"
-homepage = "https://moonbeam.network"
+homepage = "https://superpf.io"
 license = "GPL-3.0-only"
 version = "0.1.1"
 
 [[bin]]
-name = "moonkey"
+name = "spfkey"
 path = "src/main.rs"
 
 [dependencies]

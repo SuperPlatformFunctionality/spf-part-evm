@@ -1,7 +1,7 @@
 [workspace]
-exclude = [ "bin/utils/moonkey" ]
+exclude = [ "bin/utils/spfkey" ]
 members = [
-	"bin/utils/moonkey",
+	"bin/utils/spfkey",
 	"client/rpc/finality",
 	"client/rpc/manual-xcm",
 	"client/vrf",
