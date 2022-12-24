@@ -115,7 +115,7 @@ pub mod currency {
 	use super::Balance;
 
 	// Provide a common factor between runtimes based on a supply of 10_000_000 tokens.
-	pub const SUPPLY_FACTOR: Balance = 100;
+	pub const SUPPLY_FACTOR: Balance = 5;
 
 	pub const WEI: Balance = 1;
 	pub const KILOWEI: Balance = 1_000;
