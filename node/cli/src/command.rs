@@ -294,6 +294,7 @@ pub fn run() -> Result<()> {
 		None => {
 			let runner = cli.create_runner(&(*cli.run))?;
 			runner.run_node_until_exit(|config| async move {
+				//benchmarks hardware to detective the performance of current machine
 				let hwbench = if !cli.run.no_hardware_benchmarks {
 					config.database.path().map(|database_path| {
 						let _ = std::fs::create_dir_all(&database_path);
@@ -321,9 +322,13 @@ pub fn run() -> Result<()> {
 					//TODO maybe make the --alice etc flags work here, and consider bringing back
 					// the author-id flag. For now, this will work.
 
+					let tmp_seed = "Alice";
 					let author_id = Some(chain_spec::get_from_seed::<nimbus_primitives::NimbusId>(
-						"Alice",
+						tmp_seed,
 					));
+
+//					log::info!("config.chain_spec, {:?}", &config.chain_spec);
+//					log::info!("author_id: {:?}", author_id);
 
 					return match &config.chain_spec {
 						#[cfg(feature = "moonbeam-native")]
@@ -334,8 +339,6 @@ pub fn run() -> Result<()> {
 						.map_err(Into::into),
 						_ => panic!("invalid chain spec"),
 					};
-
-
 			})
 		}
 	}

@@ -112,8 +112,8 @@ pub fn get_chain_spec() -> ChainSpec {
 		// TODO Apps depends on this string to determine whether the chain is an ethereum compat
 		// or not. We should decide the proper strings, and update Apps accordingly.
 		// Or maybe Apps can be smart enough to say if the string contains "moonbeam" at all...
-		"Moonbeam Local Testnet",
-		"moonbeam_local",
+		"SPF MainNet",
+		"moonbeam_spf_mainnet",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
