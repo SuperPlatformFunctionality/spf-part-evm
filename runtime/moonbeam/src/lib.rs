@@ -292,6 +292,59 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
+/// Logic for the author to get a portion of fees.
+pub struct ToAuthor<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for ToAuthor<R>
+	where
+		R: pallet_balances::Config + pallet_authorship::Config,
+{
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+		if let Some(author) = <pallet_authorship::Pallet<R>>::author() {
+			<pallet_balances::Pallet<R>>::resolve_creating(&author, amount);
+		}
+	}
+}
+
+pub struct DealWithFees<R>(sp_std::marker::PhantomData<R>);
+impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
+	where
+		R: pallet_balances::Config + pallet_authorship::Config,
+//R: pallet_balances::Config + pallet_treasury::Config,
+//pallet_treasury::Pallet<R>: OnUnbalanced<NegativeImbalance<R>>,
+{
+	// this seems to be called for substrate-based transactions
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance<R>>) {
+		if let Some(fees) = fees_then_tips.next() {
+			// for fees, 80% are burned, 20% to the treasury
+			//let (to_author, _) = fees.ration(80, 20);
+			// Balances pallet automatically burns dropped Negative Imbalances by decreasing
+			// total_supply accordingly
+			//<pallet_treasury::Pallet<R> as OnUnbalanced<_>>::on_unbalanced(to_treasury);
+			//let author = Authorship::author();
+
+			//if let Some(author) = Authorship::author() {
+			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(fees);
+			//}
+		}
+		//if let Some(tips) = fees_then_tips.next() {
+		//    <ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(tips);
+		//}
+	}
+
+	// this is called from pallet_evm for Ethereum-based transactions
+	// (technically, it calls on_unbalanced, which calls this when non-zero)
+	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+		// Balances pallet automatically burns dropped Negative Imbalances by decreasing
+		// total_supply accordingly
+		let (to_author, _) = amount.ration(80, 20);
+		//<pallet_treasury::Pallet<R> as OnUnbalanced<_>>::on_unbalanced(to_treasury);
+		//let author = Authorship::author();
+		if let Some(author) = Authorship::author() {
+			//Balances::resolve_creating(&author, to_author);
+			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(to_author);
+		}
+	}
+}
 
 pub struct LengthToFee;
 impl WeightToFeePolynomial for LengthToFee {
@@ -317,7 +370,7 @@ impl WeightToFeePolynomial for LengthToFee {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type Event = Event;
-	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+	type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type WeightToFee = ConstantMultiplier<Balance, ConstU128<{ currency::WEIGHT_FEE }>>;
 	type LengthToFee = LengthToFee;
@@ -424,6 +477,27 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 	}
 }
 
+// This struct is an adapter type that converts an AuraId into an AccountId
+pub struct AuraAccountAdapter<F>(sp_std::marker::PhantomData<F>);
+
+impl<F: FindAuthor<u32>> FindAuthor<AccountId> for AuraAccountAdapter<F> {
+	fn find_author<'a, I>(digests: I) -> Option<AccountId>
+		where I: 'a + IntoIterator<Item=(ConsensusEngineId, &'a [u8])>
+	{
+		if let Some(author_index) = F::find_author(digests) {
+			let authority_id = Aura::authorities()[author_index as usize].clone();
+			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]).into());
+		}
+		None
+	}
+}
+
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = AuraAccountAdapter<Aura>;
+	type UncleGenerations = ();
+	type FilterUncle = ();
+	type EventHandler =  ();
+}
 
 moonbeam_runtime_common::impl_on_charge_evm_transaction!();
 
@@ -582,6 +656,7 @@ construct_runtime! {
 		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>} = 51,
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Origin, Config} = 52,
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event} = 53,
+		Authorship: pallet_authorship::{Pallet, Call, Storage} = 54,
 
 		// Governance stuff.
 		//Scheduler: pallet_scheduler::{Pallet, Storage, Event<T>, Call} = 60,

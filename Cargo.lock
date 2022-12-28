@@ -5336,6 +5336,7 @@ dependencies = [
  "pallet-author-inherent",
  "pallet-author-mapping",
  "pallet-author-slot-filter",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-base-fee",
  "pallet-collective",
