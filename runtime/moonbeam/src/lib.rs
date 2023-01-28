@@ -326,9 +326,9 @@ impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
 			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(fees);
 			//}
 		}
-		//if let Some(tips) = fees_then_tips.next() {
-		//    <ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(tips);
-		//}
+		if let Some(tips) = fees_then_tips.next() {
+		    <ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(tips);
+		}
 	}
 
 	// this is called from pallet_evm for Ethereum-based transactions
@@ -336,13 +336,14 @@ impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
 	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
 		// Balances pallet automatically burns dropped Negative Imbalances by decreasing
 		// total_supply accordingly
-		let (to_author, _) = amount.ration(80, 20);
+//		let (to_author, _) = amount.ration(80, 20);
 		//<pallet_treasury::Pallet<R> as OnUnbalanced<_>>::on_unbalanced(to_treasury);
 		//let author = Authorship::author();
-		if let Some(author) = Authorship::author() {
+//		if let Some(author) = Authorship::author() {
 			//Balances::resolve_creating(&author, to_author);
-			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(to_author);
-		}
+//			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(to_author);
+			<ToAuthor<R> as OnUnbalanced<_>>::on_unbalanced(amount);
+//		}
 	}
 }
 
