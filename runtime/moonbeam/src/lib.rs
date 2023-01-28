@@ -314,6 +314,7 @@ impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
 {
 	// this seems to be called for substrate-based transactions
 	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance<R>>) {
+		//log::info!("in on_unbalanceds");
 		if let Some(fees) = fees_then_tips.next() {
 			// for fees, 80% are burned, 20% to the treasury
 			//let (to_author, _) = fees.ration(80, 20);
@@ -334,6 +335,7 @@ impl<R> OnUnbalanced<NegativeImbalance<R>> for DealWithFees<R>
 	// this is called from pallet_evm for Ethereum-based transactions
 	// (technically, it calls on_unbalanced, which calls this when non-zero)
 	fn on_nonzero_unbalanced(amount: NegativeImbalance<R>) {
+		//log::info!("in on_nonzero_unbalanced");
 		// Balances pallet automatically burns dropped Negative Imbalances by decreasing
 		// total_supply accordingly
 //		let (to_author, _) = amount.ration(80, 20);
@@ -516,7 +518,7 @@ impl pallet_evm::Config for Runtime {
     type PrecompilesType = FrontierPrecompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	type ChainId = EthereumChainId;
-	type OnChargeTransaction = ();
+	type OnChargeTransaction = OnChargeEVMTransaction<DealWithFees<Runtime>>;
 	type BlockGasLimit = BlockGasLimit;
     type FindAuthor = FindAuthorTruncated<Aura>;
 }
