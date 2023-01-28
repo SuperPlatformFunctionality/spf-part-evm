@@ -78,7 +78,7 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 			testnet_genesis(
 				accounts.clone(),
 				Default::default(), // para_id
-				42,                 //ChainId
+				1280,                 //ChainId
 				vec![authority_keys_from_seed("Alice")],
 			)
 		},
