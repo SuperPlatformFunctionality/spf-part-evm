@@ -114,3 +114,13 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 		.expect("static values are valid; qed")
 		.public()
 }
+
+pub fn get_from_seed_with_password<TPublic: Public>(seed: &str, password: &str) -> <TPublic::Pair as Pair>::Public {
+	let mut pwd = match password {
+		"" => None,
+		_ => Some(password)
+	};
+	TPublic::Pair::from_string(&format!("{}", seed), pwd)
+		.expect("static values are valid; qed")
+		.public()
+}

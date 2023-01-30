@@ -21,7 +21,7 @@
 
 #[cfg(test)]
 use crate::chain_spec::{derive_bip44_pairs_from_mnemonic, get_account_id_from_pair};
-use crate::chain_spec::{generate_accounts, get_from_seed, Extensions};
+use crate::chain_spec::{generate_accounts, get_from_seed, get_from_seed_with_password, Extensions};
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use moonbeam_runtime::EligibilityValue;
@@ -314,5 +314,12 @@ mod tests {
 		assert_eq!(first_account, expected_first_account);
 		assert_eq!(last_account, expected_last_account);
 		assert_eq!(pairs.len(), 20);
+
+		println!("test 1 {:?}, {:?}, {:?}", get_from_seed::<AuraId>("Alice"), get_from_seed::<GrandpaId>("Alice"), get_from_seed::<NimbusId>("Alice"));
+
+		let account_aura = get_from_seed_with_password::<AuraId>("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a", "");
+		let account_grandpa = get_from_seed_with_password::<GrandpaId>("0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115", "");
+		let account_nimbus = get_from_seed_with_password::<NimbusId>("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a", "");
+		println!("test 2 {:?}, {:?}, {:?}", account_aura, account_grandpa, account_nimbus);
 	}
 }
