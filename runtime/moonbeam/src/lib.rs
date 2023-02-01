@@ -466,6 +466,15 @@ where
 	}
 }
 
+fn getFeeReceiverFromAuthor(authority_id: &AuraId) -> H160 {
+//	let a1:&[u8] = authority_id.as_ref();
+//	log::info!("authority_id {:?} {:?} {} {:?}", authority_id.encode(), a1, authority_id.size_hint(), authority_id.to_ss58check());
+	let account_h160_raw : &[u8] = match authority_id {
+		_ => &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"), //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
+	};
+	return H160::from_slice(&account_h160_raw);
+}
+
 pub struct FindAuthorTruncated<F>(sp_std::marker::PhantomData<F>);
 impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 	fn find_author<'a, I>(digests: I) -> Option<H160>
@@ -482,14 +491,13 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 
 // This struct is an adapter type that converts an AuraId into an AccountId
 pub struct AuraAccountAdapter<F>(sp_std::marker::PhantomData<F>);
-
 impl<F: FindAuthor<u32>> FindAuthor<AccountId> for AuraAccountAdapter<F> {
 	fn find_author<'a, I>(digests: I) -> Option<AccountId>
 		where I: 'a + IntoIterator<Item=(ConsensusEngineId, &'a [u8])>
 	{
 		if let Some(author_index) = F::find_author(digests) {
 			let authority_id = Aura::authorities()[author_index as usize].clone();
-			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]).into());
+			return Some(getFeeReceiverFromAuthor(&authority_id).into());
 		}
 		None
 	}
