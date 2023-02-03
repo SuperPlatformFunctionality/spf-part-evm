@@ -321,5 +321,8 @@ mod tests {
 		let account_grandpa = get_from_seed_with_password::<GrandpaId>("0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115", "");
 		let account_nimbus = get_from_seed_with_password::<NimbusId>("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a", "");
 		println!("test 2 {:?}, {:?}, {:?}", account_aura, account_grandpa, account_nimbus);
+
+//		let s = AuraId::from_str("5D4buZeSvZtZxyFWH7CQv1RRf7WvYuLwYuTMQ8uu3WL9dmdk", None);
+//		println!("{:?}", s);
 	}
 }

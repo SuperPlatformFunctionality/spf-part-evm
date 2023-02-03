@@ -467,11 +467,41 @@ where
 }
 
 fn getFeeReceiverFromAuthor(authority_id: &AuraId) -> H160 {
-//	let a1:&[u8] = authority_id.as_ref();
-//	log::info!("authority_id {:?} {:?} {} {:?}", authority_id.encode(), a1, authority_id.size_hint(), authority_id.to_ss58check());
+	/*
+	let a1:&[u8] = authority_id.as_ref();
+	log::info!("authority_id {:?} {:?}", authority_id, a1);
+	*/
+//	let s = AuraId::from_ss58check("5D4buZeSvZtZxyFWH7CQv1RRf7WvYuLwYuTMQ8uu3WL9dmdk");
+	let mut account_h160_raw : &[u8];
+	/*
 	let account_h160_raw : &[u8] = match authority_id {
 		_ => &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"), //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
 	};
+	*/
+	let raw_data:&[u8] = authority_id.as_ref();
+	if(raw_data == [168, 111, 253, 179, 153, 29, 7, 14, 241, 142,  34, 148,  97, 119,  30, 141, 251, 139, 196, 3, 176,  81, 163, 251, 137, 248, 228, 169,  46, 225, 135, 106]) {
+		// production
+		// sr25519 public key : 0xa86ffdb3991d070ef18e229461771e8dfb8bc403b051a3fb89f8e4a92ee1876a
+		// ss58 address : 5FsZApNyn29SFhxwwxmmSsVFhDDagVTsYCcsCA8VKtuCuRAh
+		account_h160_raw = &hex_literal::hex!("8D6EF00FD445982f4F49f889f6F168bfF8c9548F"); //0x8D6EF00FD445982f4F49f889f6F168bfF8c9548F from gao
+	} else if(raw_data == [6, 79, 184,  29, 220,  83,  59, 4, 34, 68, 206, 129, 177, 119, 151,  76, 58,  6,  86, 183,  22,   0,  92, 154, 22, 50,  55, 188, 247,  19, 113, 8]) {
+		// production
+		// sr25519 public key : 0x064fb81ddc533b042244ce81b177974c3a0656b716005c9a163237bcf7137108
+		// ss58 address : 5CCypryvRrhrKcvbC3iJHFyyhnJ4gxXQjeAKtTKaDeCfWZgX
+		account_h160_raw = &hex_literal::hex!("Cd6A2A9772426fB9f759A6157A4CC5530b6674fe"); //0xCd6A2A9772426fB9f759A6157A4CC5530b6674fe from gao
+	} else if (raw_data == [108, 92, 219, 172, 36, 182, 70, 55, 129, 234, 85, 137, 87, 206, 212, 69, 190, 228, 211, 187, 103, 165, 98, 121, 181, 119, 89, 153, 56, 92, 49, 27]) {
+		// production
+		// sr2519 production key : 0x6c5cdbac24b6463781ea558957ced445bee4d3bb67a56279b5775999385c311b
+		// ss58 address : 5EWncXUeu8XhwQpZ7KLcUY9A2TjWW1WV18F2XvsZUFMUxd34
+		account_h160_raw = &hex_literal::hex!("44f6812d7ae6f17F4963fC349652696BF9bc9307"); //0x44f6812d7ae6f17F4963fC349652696BF9bc9307 from gao
+	} else if (raw_data == [212, 53, 147, 199,  21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133,  76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125]) {
+		// test
+		// sr25519 public key :0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+		// ss58 address :5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+		account_h160_raw = &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"); //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
+	} else {
+		account_h160_raw = &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"); //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
+	}
 	return H160::from_slice(&account_h160_raw);
 }
 
@@ -481,9 +511,12 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 	where
 		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
 	{
+		//to determine which h160 address is block author
 		if let Some(author_index) = F::find_author(digests) {
 			let authority_id = Aura::authorities()[author_index as usize].clone();
-			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+			let ret = Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+			log::info!("FindAuthorTruncated find_author by authority_id: {:?}, mapping to {:?}", authority_id, ret);
+			return ret;
 		}
 		None
 	}
@@ -495,9 +528,12 @@ impl<F: FindAuthor<u32>> FindAuthor<AccountId> for AuraAccountAdapter<F> {
 	fn find_author<'a, I>(digests: I) -> Option<AccountId>
 		where I: 'a + IntoIterator<Item=(ConsensusEngineId, &'a [u8])>
 	{
+		//to determine which h160 address to get tx fee
 		if let Some(author_index) = F::find_author(digests) {
 			let authority_id = Aura::authorities()[author_index as usize].clone();
-			return Some(getFeeReceiverFromAuthor(&authority_id).into());
+			let ret = Some(getFeeReceiverFromAuthor(&authority_id).into());
+			log::info!("AuraAccountAdapter find_author by authority_id: {:?}, mapping to {:?}", authority_id, ret);
+			return ret;
 		}
 		None
 	}
