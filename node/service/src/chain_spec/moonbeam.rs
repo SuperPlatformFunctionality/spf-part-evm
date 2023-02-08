@@ -65,21 +65,25 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 	let parent_mnemonic = mnemonic.unwrap_or_else(|| {
 		"bottom drive obey lake curtain smoke basket hold race lonely fit walk".to_string()
 	});
-	let mut accounts = generate_accounts(parent_mnemonic, num_accounts.unwrap_or(10));
+	let mut accounts = generate_accounts(parent_mnemonic, num_accounts.unwrap_or(2));
+	/*
 	// We add Gerald here
 	accounts.push(AccountId::from(hex!(
 		"6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b"
 	)));
+	*/
 	ChainSpec::from_genesis(
-		"Moonbeam Development Testnet",
-		"moonbeam_dev",
+		"SPF Testnet",
+		"moonbeam_spf_testnet",
 		ChainType::Development,
 		move || {
 			testnet_genesis(
 				accounts.clone(),
 				Default::default(), // para_id
 				1280,                 //ChainId
-				vec![authority_keys_from_seed("Alice")],
+				vec![
+					authority_keys_from_seed("Alice")
+				],
 			)
 		},
 		// Bootnodes
@@ -228,12 +232,14 @@ pub fn testnet_genesis(
 			// the evm will actually call the address.
 			accounts: {
 				let mut map = BTreeMap::new();
+				/*
 				map.insert(
 					// H160 address of Alice dev account
 					// Derived from SS58 (42 prefix) address
 					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
 					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+
 					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558")
 						.expect("internal H160 is valid; qed"),
 					fp_evm::GenesisAccount {
@@ -269,6 +275,7 @@ pub fn testnet_genesis(
 						storage: Default::default(),
 					},
 				);
+				*/
 				map
 			},
 		},
