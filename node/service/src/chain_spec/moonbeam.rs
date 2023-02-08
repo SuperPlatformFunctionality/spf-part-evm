@@ -65,20 +65,21 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 	let parent_mnemonic = mnemonic.unwrap_or_else(|| {
 		"bottom drive obey lake curtain smoke basket hold race lonely fit walk".to_string()
 	});
-	let mut accounts = generate_accounts(parent_mnemonic, num_accounts.unwrap_or(2));
 	/*
+	let mut init_accounts = generate_accounts(parent_mnemonic, num_accounts.unwrap_or(10));
 	// We add Gerald here
-	accounts.push(AccountId::from(hex!(
+	init_accounts.push(AccountId::from(hex!(
 		"6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b"
 	)));
 	*/
+	let mut init_accounts = generate_accounts(parent_mnemonic, num_accounts.unwrap_or(1));
 	ChainSpec::from_genesis(
 		"SPF Testnet",
 		"moonbeam_spf_testnet",
 		ChainType::Development,
 		move || {
 			testnet_genesis(
-				accounts.clone(),
+				init_accounts.clone(),
 				Default::default(), // para_id
 				1280,                 //ChainId
 				vec![
@@ -124,7 +125,7 @@ pub fn get_chain_spec() -> ChainSpec {
 				// Endowed: Alith, Baltathar, Charleth and Dorothy
 				vec![
 					AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
-					AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
+//					AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
 //					AccountId::from(hex!("798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc")),
 //					AccountId::from(hex!("773539d4Ac0e786233D90A233654ccEE26a613D9")),
 				],
@@ -214,7 +215,8 @@ pub fn testnet_genesis(
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, 1 << 80))
+//				.map(|k| (k, 1 << 80))
+				.map(|k| (k, 1000000 * u128::pow(10,18)))
 				.collect(),
 		},
 		aura: AuraConfig {
