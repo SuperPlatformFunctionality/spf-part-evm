@@ -37,6 +37,7 @@ pallet-parachain-staking = { path = "../../pallets/parachain-staking", default-f
 pallet-proxy-genesis-companion = { path = "../../pallets/proxy-genesis-companion", default-features = false }
 pallet-randomness = { path = "../../pallets/randomness", default-features = false }
 pallet-xcm-transactor = { path = "../../pallets/xcm-transactor", default-features = false }
+pallet-spf-setting = { path = "../../pallets/spf-setting", default-features = false }
 
 # Moonbeam precompiles
 pallet-evm-precompile-author-mapping = { path = "../../precompiles/author-mapping", default-features = false }
@@ -230,6 +231,7 @@ std = [
 	"pallet-utility/std",
 	"pallet-xcm-transactor/std",
 	"pallet-xcm/std",
+	"pallet-spf-setting/std",
 	"parachain-info/std",
 	"parity-scale-codec/std",
 	"precompile-utils/std",
