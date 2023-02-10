@@ -27,7 +27,7 @@ use hex_literal::hex;
 use moonbeam_runtime::EligibilityValue;
 use moonbeam_runtime::{
 	currency::GLMR, currency::SUPPLY_FACTOR, AccountId, AuraConfig, Balance, BalancesConfig,
-	EVMConfig, EthereumChainIdConfig, EthereumConfig, GenesisAccount, GenesisConfig, GrandpaConfig,
+	EVMConfig, EthereumChainIdConfig, EthereumConfig, SpfSettingConfig, GenesisAccount, GenesisConfig, GrandpaConfig,
 	InflationInfo, Range, Signature, SystemConfig, HOURS, WASM_BINARY,
 };
 use nimbus_primitives::NimbusId;
@@ -283,7 +283,9 @@ pub fn testnet_genesis(
 		},
 		ethereum: EthereumConfig {},
 		base_fee: Default::default(),
-		spf_setting:Default::default(),
+		spf_setting:SpfSettingConfig {
+			mappings : vec![],
+		},
 	}
 }
 
