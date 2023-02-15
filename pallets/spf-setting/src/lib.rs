@@ -104,15 +104,29 @@ pub mod pallet {
 			let mut h160_raw_data = [0u8; 20];
 			hex::decode_to_slice("976f8456e4e2034179b284a23c0e0c8f6d3da50c", &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
 
+			log::info!("type info : {:?}", T::AccountId::type_info());
+
+//			let collator_id = T::AccountId::from(h160_raw_data);
+//			let collator_id = AccountId20::from(h160_raw_data);
+//			let collator_id = T::AccountId::from(h160_raw_data);
+			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
+//			let ttt = sp_runtime::traits::TrailingZeroInput::new(h160_raw_data);
+//			let collator_id = T::AccountId::decode(&mut h160_raw_data).unwrap();
+
+//			let amt = 10000000000000000u32.into();
+			let amt:BalanceOf<T> = 1000000000u32.into(); //why not u128 ?
+			log::info!("collator_id {:?}", collator_id);
+
 			/*
-			let collator_id = T::AccountId::from(h160_raw_data);
-//			let collator_id = create_funded_collator::<T>("collator", seed.take(), 0u32.into(), true, 1, )?;
-			let amt = 10000000000000000u32.into();
-			if let Ok(amount_transferred) = T::Currency::deposit_into_existing(&collator_id, amt) {
+			let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
+			if let Ok(amount_transferred) = retResult {
 //				Self::deposit_event(Event::Rewarded { account: collator_id.clone(), rewards: amount_transferred.peek(), });
+				log::info!("amount_transferred {:?}", amount_transferred.peek());
+			} else if let Err(e) = retResult {
+				log::info!("not right {:?}", e);
 			}
 			*/
-
+			let posImbalance = T::Currency::deposit_creating(&collator_id, amt);
 		}
 	}
 
