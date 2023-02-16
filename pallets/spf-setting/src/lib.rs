@@ -61,10 +61,16 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		VirtualMinerRewarded {
+			account: T::AccountId,
+			amount: BalanceOf<T>,
+		},
+		/*
 		/// A NimbusId has been registered and mapped to an AccountId.
 		KeysRegistered {
 			account_id: T::AccountId,
 		},
+			*/
 	}
 
 	#[pallet::call]
@@ -105,17 +111,32 @@ pub mod pallet {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
 			let blockIntervalDistribution = 12u32.into();
 			if (n % blockIntervalDistribution).is_zero() {
-				let miner_address_h160 = "6FFC840Fe25202e59ED54055d48362A9F1cbb194";
-				let amt:BalanceOf<T> = 1000000000000000000u128.saturated_into::<BalanceOf<T>>(); //why not u128 ?
-				Self::doOneMiningReward(miner_address_h160, amt);
+				/*
+				let allVirtualMiners = vec![
+					"0x8358Cc1d77F700E7D401239ccf5106afE7332bDe",
+					"0x9A405e3218c84D029c4aEF1b99E57216c9D17F0b",
+					"6FFC840Fe25202e59ED54055d48362A9F1cbb194",
+				];
+				*/
+				let mut allVirtualMiners = Vec::new();
+				allVirtualMiners.push("8358Cc1d77F700E7D401239ccf5106afE7332bDe");
+				allVirtualMiners.push("9A405e3218c84D029c4aEF1b99E57216c9D17F0b");
+				allVirtualMiners.push("6FFC840Fe25202e59ED54055d48362A9F1cbb194");
+
+				for tmp_miner_address_h160 in allVirtualMiners {
+					let amt:BalanceOf<T> = 1000000000000000000u128.saturated_into::<BalanceOf<T>>(); //why not u128 ?
+					Self::doOneMiningReward(tmp_miner_address_h160, amt);
+				}
+
 			}
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn doOneMiningReward(miner_address_h160 : &str, amt:BalanceOf<T>) -> bool {
+		fn doOneMiningReward(miner_address_h160 : &str, amt : BalanceOf<T>) -> bool {
 			//log::info!("type info : {:?}", T::AccountId::type_info());
-
+//			log::info!("miner_address_h160 {}", miner_address_h160);
+			
 			let mut h160_raw_data = [0u8; 20];
 			hex::decode_to_slice(miner_address_h160, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
 			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
@@ -133,7 +154,11 @@ pub mod pallet {
 			let positive_imbalance = T::Currency::deposit_creating(&collator_id, amt);
 			let positive_imbalance_value = positive_imbalance.peek().saturated_into::<u128>();
 			if positive_imbalance_value > 0 {
-				log::info!("{:?}", positive_imbalance_value);
+//				log::info!("positive_imbalance_value is {:?}", positive_imbalance_value);
+				Self::deposit_event(Event::VirtualMinerRewarded {
+					account: collator_id.clone(),
+					amount: positive_imbalance.peek().clone(),
+				});
 			}
 
 			true
