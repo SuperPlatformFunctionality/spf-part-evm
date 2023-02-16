@@ -8,13 +8,16 @@ pub use pallet::*;
 
 #[pallet]
 pub mod pallet {
+	use frame_support::sp_runtime::SaturatedConversion;
+	use frame_support::sp_runtime::traits::Zero;
 	use frame_support::pallet_prelude::*;
 	use frame_support::traits::{
 		tokens::WithdrawReasons, Currency, Get, Imbalance, LockIdentifier, LockableCurrency,
 		ReservableCurrency,
 	};
 	use frame_system::pallet_prelude::*;
-//	use nimbus_primitives::{AccountLookup, NimbusId};
+
+	//	use nimbus_primitives::{AccountLookup, NimbusId};
 //	use session_keys_primitives::KeysLookup;
 	use sp_std::{mem::size_of, vec::Vec};
 
@@ -99,34 +102,41 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: T::BlockNumber) {
-			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
+//			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
+			let blockIntervalDistribution = 12u32.into();
+			if (n % blockIntervalDistribution).is_zero() {
+				let miner_address_h160 = "6FFC840Fe25202e59ED54055d48362A9F1cbb194";
+				let amt:BalanceOf<T> = 1000000000000000000u128.saturated_into::<BalanceOf<T>>(); //why not u128 ?
+				Self::doOneMiningReward(miner_address_h160, amt);
+			}
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn doOneMiningReward(miner_address_h160 : &str, amt:BalanceOf<T>) -> bool {
+			//log::info!("type info : {:?}", T::AccountId::type_info());
 
 			let mut h160_raw_data = [0u8; 20];
-			hex::decode_to_slice("976f8456e4e2034179b284a23c0e0c8f6d3da50c", &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
-
-			log::info!("type info : {:?}", T::AccountId::type_info());
-
-//			let collator_id = T::AccountId::from(h160_raw_data);
-//			let collator_id = AccountId20::from(h160_raw_data);
-//			let collator_id = T::AccountId::from(h160_raw_data);
+			hex::decode_to_slice(miner_address_h160, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
 			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
-//			let ttt = sp_runtime::traits::TrailingZeroInput::new(h160_raw_data);
-//			let collator_id = T::AccountId::decode(&mut h160_raw_data).unwrap();
-
-//			let amt = 10000000000000000u32.into();
-			let amt:BalanceOf<T> = 1000000000u32.into(); //why not u128 ?
-			log::info!("collator_id {:?}", collator_id);
+//			log::info!("collator_id {:?}", collator_id);
 
 			/*
-			let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
-			if let Ok(amount_transferred) = retResult {
-//				Self::deposit_event(Event::Rewarded { account: collator_id.clone(), rewards: amount_transferred.peek(), });
-				log::info!("amount_transferred {:?}", amount_transferred.peek());
-			} else if let Err(e) = retResult {
-				log::info!("not right {:?}", e);
-			}
+				let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
+				if let Ok(amount_transferred) = retResult {
+				//				Self::deposit_event(Event::Rewarded { account: collator_id.clone(), rewards: amount_transferred.peek(), });
+					log::info!("amount_transferred {:?}", amount_transferred.peek());
+				} else if let Err(e) = retResult {
+					log::info!("not right {:?}", e);
+				}
 			*/
-			let posImbalance = T::Currency::deposit_creating(&collator_id, amt);
+			let positive_imbalance = T::Currency::deposit_creating(&collator_id, amt);
+			let positive_imbalance_value = positive_imbalance.peek().saturated_into::<u128>();
+			if positive_imbalance_value > 0 {
+				log::info!("{:?}", positive_imbalance_value);
+			}
+
+			true
 		}
 	}
 
