@@ -119,9 +119,9 @@ pub mod pallet {
 				];
 				*/
 				let mut allVirtualMiners = Vec::new();
-				allVirtualMiners.push("8358Cc1d77F700E7D401239ccf5106afE7332bDe");
-				allVirtualMiners.push("9A405e3218c84D029c4aEF1b99E57216c9D17F0b");
-				allVirtualMiners.push("6FFC840Fe25202e59ED54055d48362A9F1cbb194");
+				allVirtualMiners.push("0x8358Cc1d77F700E7D401239ccf5106afE7332bDe");
+				allVirtualMiners.push("0x9A405e3218c84D029c4aEF1b99E57216c9D17F0b");
+				allVirtualMiners.push("0x6FFC840Fe25202e59ED54055d48362A9F1cbb194");
 
 				for tmp_miner_address_h160 in allVirtualMiners {
 					let amt:BalanceOf<T> = 1000000000000000000u128.saturated_into::<BalanceOf<T>>(); //why not u128 ?
@@ -136,9 +136,16 @@ pub mod pallet {
 		fn doOneMiningReward(miner_address_h160 : &str, amt : BalanceOf<T>) -> bool {
 			//log::info!("type info : {:?}", T::AccountId::type_info());
 //			log::info!("miner_address_h160 {}", miner_address_h160);
-			
+			log::info!("{}", miner_address_h160.starts_with("0x"));
+			let miner_address_h160_without_prefix =
+				if miner_address_h160.starts_with("0x") {
+					&miner_address_h160[2..]
+				} else {
+					miner_address_h160
+				};
+
 			let mut h160_raw_data = [0u8; 20];
-			hex::decode_to_slice(miner_address_h160, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
+			hex::decode_to_slice(miner_address_h160_without_prefix, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
 			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
 //			log::info!("collator_id {:?}", collator_id);
 
