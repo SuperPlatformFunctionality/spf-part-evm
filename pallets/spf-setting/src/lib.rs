@@ -18,6 +18,8 @@ pub mod pallet {
 //	use session_keys_primitives::KeysLookup;
 	use sp_std::{mem::size_of, vec::Vec};
 
+	pub type TypeVirtualMinerWeight = u128;
+
 
 	//pub type BalanceOf<T> = <<T as Config>::DepositCurrency as Currency<<T as frame_system::Config>::AccountId, >>::Balance;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -53,6 +55,7 @@ pub mod pallet {
 	#[pallet::error]
 	pub enum Error<T> {
 		VirtualMinerNotFound,
+		VirtualMinerAlreadyExists,
 	}
 
 	#[pallet::event]
@@ -67,26 +70,46 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000)]
-		pub fn set_keys(origin: OriginFor<T>, keys: Vec<u8>) -> DispatchResult {
+		pub fn add_new_virtual_miner(origin: OriginFor<T>, miner_id: T::AccountId, miner_weight: TypeVirtualMinerWeight) -> DispatchResult {
 			let account_id = ensure_signed(origin)?;
+
+			ensure!(
+				VirtualMinerWeightLookup::<T>::get(&miner_id).is_none(),
+				Error::<T>::VirtualMinerAlreadyExists
+			);
+
+			log::info!("{:?}, {:?}, {:?}",account_id, miner_id, miner_weight);
+			let weight_total_old = VirtualMinerWeightTotal::<T>::get();
+			VirtualMinerWeightLookup::<T>::insert(&miner_id, &miner_weight);
+			let weight_total_new = weight_total_old + miner_weight;
+			<VirtualMinerWeightTotal<T>>::put(weight_total_new);
+
 			Ok(())
 		}
 	}
 
 	#[pallet::storage]
+	#[pallet::getter(fn virtual_miner_weight_total)]
+	pub type VirtualMinerWeightTotal<T: Config> = StorageValue<_, TypeVirtualMinerWeight, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn virtual_miner_weight_lookup)]
-	pub type VirtualMinerWeightLookup<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, OptionQuery>;
+	pub type VirtualMinerWeightLookup<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, TypeVirtualMinerWeight, OptionQuery>;
 
 	#[pallet::genesis_config]
 	/// Genesis config for spf setting pallet
 	pub struct GenesisConfig<T: Config> {
 		pub mappings: Vec<T::AccountId>,
+		pub map_virtual_miner_weight: Vec<(T::AccountId, TypeVirtualMinerWeight)>
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self { mappings: vec![] }
+			Self {
+				mappings: vec![],
+				map_virtual_miner_weight : vec![]
+			}
 		}
 	}
 
@@ -96,6 +119,14 @@ pub mod pallet {
 			for account_id in &self.mappings {
 
 			}
+
+			let mut total_weight = 0;
+			for (miner_id, miner_weight) in &self.map_virtual_miner_weight {
+				total_weight += miner_weight;
+				VirtualMinerWeightLookup::<T>::insert(&miner_id, &miner_weight);
+			}
+			<VirtualMinerWeightTotal<T>>::put(total_weight);
+
 		}
 	}
 
@@ -105,22 +136,15 @@ pub mod pallet {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
 			let blockIntervalDistribution = 12u32.into();
 			if (n % blockIntervalDistribution).is_zero() {
-				/*
-				let allVirtualMiners = vec![
-					"0x8358Cc1d77F700E7D401239ccf5106afE7332bDe",
-					"0x9A405e3218c84D029c4aEF1b99E57216c9D17F0b",
-					"6FFC840Fe25202e59ED54055d48362A9F1cbb194",
-				];
-				*/
-				let mut allVirtualMiners = Vec::new();
-				allVirtualMiners.push("0x8358Cc1d77F700E7D401239ccf5106afE7332bDe");
-				allVirtualMiners.push("0x9A405e3218c84D029c4aEF1b99E57216c9D17F0b");
-				allVirtualMiners.push("0x6FFC840Fe25202e59ED54055d48362A9F1cbb194");
-
-				for tmp_miner_address_h160 in allVirtualMiners {
-					let amt:BalanceOf<T> = 1000000000000000000u128.saturated_into::<BalanceOf<T>>(); //why not u128 ?
-					Self::doOneMiningReward(tmp_miner_address_h160, amt);
-				}
+				let total_weight = VirtualMinerWeightTotal::<T>::get();
+				let rewards_each_round:u128 = 1000000000000000000u128;
+				let iter = VirtualMinerWeightLookup::<T>::iter();
+				iter.for_each(|(miner_id, miner_weight)| {
+					log::info!("do mining reward : {:?} , {:?}", miner_id, miner_weight);
+					let amt:BalanceOf<T> = (rewards_each_round * miner_weight / total_weight).saturated_into::<BalanceOf<T>>();
+//					Self::doOneMiningReward(tmp_miner_address_h160, amt);
+					Self::doOneMiningRewardEx(&miner_id, amt);
+				})
 
 			}
 		}
@@ -141,8 +165,13 @@ pub mod pallet {
 			let mut h160_raw_data = [0u8; 20];
 			hex::decode_to_slice(miner_address_h160_without_prefix, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
 			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
-//			log::info!("collator_id {:?}", collator_id);
 
+			let ret = Self::doOneMiningRewardEx(&collator_id, amt);
+			ret
+		}
+
+		fn doOneMiningRewardEx(collator_id : &T::AccountId, amt : BalanceOf<T>) -> bool {
+			// log::info!("collator_id {:?}", collator_id);
 			/*
 				let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
 				if let Ok(amount_transferred) = retResult {
@@ -153,7 +182,7 @@ pub mod pallet {
 				}
 			*/
 			let positive_imbalance = T::Currency::deposit_creating(&collator_id, amt);
-			let positive_imbalance_value = positive_imbalance.peek().saturated_into::<u128>();
+			let positive_imbalance_value = positive_imbalance.peek().saturated_into::<TypeVirtualMinerWeight>();
 			if positive_imbalance_value > 0 {
 //				log::info!("positive_imbalance_value is {:?}", positive_imbalance_value);
 				Self::deposit_event(Event::VirtualMinerRewarded {
@@ -161,11 +190,10 @@ pub mod pallet {
 					amount: positive_imbalance.peek().clone(),
 				});
 			}
-
 			true
 		}
 
-		pub fn miner_weight_of(account_id: &T::AccountId) -> Option<u64> {
+		pub fn miner_weight_of(account_id: &T::AccountId) -> Option<TypeVirtualMinerWeight> {
 			VirtualMinerWeightLookup::<T>::get(account_id)
 		}
 	}
