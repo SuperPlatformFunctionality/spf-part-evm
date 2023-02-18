@@ -695,7 +695,7 @@ construct_runtime! {
 		//AuthorFilter: pallet_author_slot_filter::{Pallet, Call, Storage, Event, Config} = 22,
 		//AuthorMapping: pallet_author_mapping::{Pallet, Call, Config<T>, Storage, Event<T>} = 23,
 		//MoonbeamOrbiters: pallet_moonbeam_orbiters::{Pallet, Call, Storage, Event<T>} = 24,
-		SpfSetting: pallet_spf_setting::{Pallet, Call, Event<T>, Config<T>} = 25,
+		SpfSetting: pallet_spf_setting::{Pallet, Storage, Call, Event<T>, Config<T>} = 25,
 
 		// Handy utilities.
 		//Utility: pallet_utility::{Pallet, Call, Event} = 30,

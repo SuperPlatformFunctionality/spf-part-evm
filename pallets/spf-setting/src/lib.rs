@@ -74,7 +74,7 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn Virtual_miner_weight_lookup)]
+	#[pallet::getter(fn virtual_miner_weight_lookup)]
 	pub type VirtualMinerWeightLookup<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, OptionQuery>;
 
 	#[pallet::genesis_config]
@@ -163,6 +163,10 @@ pub mod pallet {
 			}
 
 			true
+		}
+
+		pub fn miner_weight_of(account_id: &T::AccountId) -> Option<u64> {
+			VirtualMinerWeightLookup::<T>::get(account_id)
 		}
 	}
 
