@@ -1,10 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet;
-
 pub use pallet::*;
-
-
 
 #[pallet]
 pub mod pallet {
@@ -41,6 +38,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Overarching event type
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
 		/// Currency in which the security deposit will be taken.
 		//type DepositCurrency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
@@ -51,11 +49,10 @@ pub mod pallet {
 		type DepositAmount: Get<<Self::Currency as Currency<Self::AccountId>>::Balance>;
 	}
 
-	/// An error that can occur while executing the mapping pallet's logic.
+	/// An error that can occur while executing the spf setting pallet's logic.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The association can't be cleared because it is not found.
-		AssociationNotFound,
+		VirtualMinerNotFound,
 	}
 
 	#[pallet::event]
@@ -65,12 +62,6 @@ pub mod pallet {
 			account: T::AccountId,
 			amount: BalanceOf<T>,
 		},
-		/*
-		/// A NimbusId has been registered and mapped to an AccountId.
-		KeysRegistered {
-			account_id: T::AccountId,
-		},
-			*/
 	}
 
 	#[pallet::call]
@@ -82,10 +73,13 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::storage]
+	#[pallet::getter(fn Virtual_miner_weight_lookup)]
+	pub type VirtualMinerWeightLookup<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, OptionQuery>;
+
 	#[pallet::genesis_config]
-	/// Genesis config for author mapping pallet
+	/// Genesis config for spf setting pallet
 	pub struct GenesisConfig<T: Config> {
-		/// The associations that should exist at chain genesis
 		pub mappings: Vec<T::AccountId>,
 	}
 
