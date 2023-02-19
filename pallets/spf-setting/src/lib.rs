@@ -135,7 +135,17 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			//spf foundation
+			for fundation_id in &self.spf_foundation_accounts {
+				<SpfFoundationAccounts<T>>::get().push(fundation_id.clone());
+			}
 
+			//virtual miners
+			for v_miner_id in &self.vec_virtual_miners {
+				<VirtualMiners<T>>::get().push(v_miner_id.clone());
+			}
+
+			//virtual nodes
 			<BlockNumberIntervalDistribution<T>>::put(12);
 			let mut total_weight = 0;
 			for (node_id, node_weight) in &self.map_virtual_node_weight {
