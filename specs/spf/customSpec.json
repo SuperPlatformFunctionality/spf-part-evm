@@ -45,7 +45,7 @@
         "balances": []
       },
       "spfSetting": {
-        "mapVirtualMinerWeight": [
+        "mapVirtualNodeWeight": [
 			["0x515755aa37Bbf5BDFf8214A1B6472E633D421979",4],
 			["0x25F2B419c513388fDFEE12982Baa3fA8153Be038",4],
 			["0xfCcd686cFEf159bc461D61a70Ab71C1fAf635f08",13],
