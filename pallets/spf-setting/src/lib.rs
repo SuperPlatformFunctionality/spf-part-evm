@@ -97,7 +97,6 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn virtual_node_weight_total)]
 	pub type VirtualNodeWeightTotal<T: Config> = StorageValue<_, TypeVirtualNodeWeight, ValueQuery>;
-
 	#[pallet::storage]
 	#[pallet::getter(fn virtual_node_weight_lookup)]
 	pub type VirtualNodeWeightLookup<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, TypeVirtualNodeWeight, OptionQuery>;
@@ -135,10 +134,10 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: T::BlockNumber) {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
-
-			let rewards_each_round:u128 = 1000000000000000000u128;
-			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get().into();
-			if (n % block_interval_distribution).is_zero() {
+			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
+			let rewards_everyday:u128 = 13698000000000000000000u128;
+			let rewards_each_round:u128 = rewards_everyday / (((3600*24 as u32)/6u32 * block_interval_distribution) as u128);
+			if (n % block_interval_distribution.into()).is_zero() {
 				let total_weight = VirtualNodeWeightTotal::<T>::get();
 				let iter = VirtualNodeWeightLookup::<T>::iter();
 				iter.for_each(|(node_id, node_weight)| {
