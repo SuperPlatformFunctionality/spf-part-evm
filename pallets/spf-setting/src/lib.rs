@@ -136,14 +136,10 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			//spf foundation
-			for fundation_id in &self.spf_foundation_accounts {
-				<SpfFoundationAccounts<T>>::get().push(fundation_id.clone());
-			}
+			<SpfFoundationAccounts<T>>::put(&self.spf_foundation_accounts);
 
 			//virtual miners
-			for v_miner_id in &self.vec_virtual_miners {
-				<VirtualMiners<T>>::get().push(v_miner_id.clone());
-			}
+			<VirtualMiners<T>>::put(&self.vec_virtual_miners);
 
 			//virtual nodes
 			<BlockNumberIntervalDistribution<T>>::put(12);
