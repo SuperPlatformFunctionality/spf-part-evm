@@ -88,6 +88,12 @@ pub mod pallet {
 		}
 	}
 
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn block_number_interval_distribution)]
+	pub type BlockNumberIntervalDistribution<T: Config> = StorageValue<_, u32, ValueQuery>;
+
 	#[pallet::storage]
 	#[pallet::getter(fn virtual_miner_weight_total)]
 	pub type VirtualMinerWeightTotal<T: Config> = StorageValue<_, TypeVirtualMinerWeight, ValueQuery>;
@@ -99,7 +105,6 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	/// Genesis config for spf setting pallet
 	pub struct GenesisConfig<T: Config> {
-		pub mappings: Vec<T::AccountId>,
 		pub map_virtual_miner_weight: Vec<(T::AccountId, TypeVirtualMinerWeight)>
 	}
 
@@ -107,7 +112,6 @@ pub mod pallet {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
-				mappings: vec![],
 				map_virtual_miner_weight : vec![]
 			}
 		}
@@ -116,17 +120,14 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for account_id in &self.mappings {
 
-			}
-
+			<BlockNumberIntervalDistribution<T>>::put(12);
 			let mut total_weight = 0;
 			for (miner_id, miner_weight) in &self.map_virtual_miner_weight {
 				total_weight += miner_weight;
 				VirtualMinerWeightLookup::<T>::insert(&miner_id, &miner_weight);
 			}
 			<VirtualMinerWeightTotal<T>>::put(total_weight);
-
 		}
 	}
 
@@ -134,10 +135,11 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: T::BlockNumber) {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
-			let blockIntervalDistribution = 12u32.into();
-			if (n % blockIntervalDistribution).is_zero() {
+
+			let rewards_each_round:u128 = 1000000000000000000u128;
+			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get().into();
+			if (n % block_interval_distribution).is_zero() {
 				let total_weight = VirtualMinerWeightTotal::<T>::get();
-				let rewards_each_round:u128 = 1000000000000000000u128;
 				let iter = VirtualMinerWeightLookup::<T>::iter();
 				iter.for_each(|(miner_id, miner_weight)| {
 					log::info!("do mining reward : {:?} , {:?}", miner_id, miner_weight);

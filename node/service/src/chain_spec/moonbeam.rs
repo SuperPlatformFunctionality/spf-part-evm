@@ -284,7 +284,6 @@ pub fn testnet_genesis(
 		ethereum: EthereumConfig {},
 		base_fee: Default::default(),
 		spf_setting:SpfSettingConfig {
-			mappings : vec![],
 			map_virtual_miner_weight :vec![
 				(AccountId::from(hex!("8358Cc1d77F700E7D401239ccf5106afE7332bDe")), 1000),
 				(AccountId::from(hex!("9A405e3218c84D029c4aEF1b99E57216c9D17F0b")), 1000),
