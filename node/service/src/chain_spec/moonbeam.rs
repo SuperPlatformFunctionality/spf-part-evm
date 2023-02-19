@@ -284,10 +284,36 @@ pub fn testnet_genesis(
 		ethereum: EthereumConfig {},
 		base_fee: Default::default(),
 		spf_setting:SpfSettingConfig {
+			spf_foundation_accounts:vec![
+				AccountId::from(hex!("C670813707C92dC82a43f741008D711bD2249bd8"))
+			],
+			vec_virtual_miners:vec![
+				AccountId::from(hex!("b91944FEf72B09629b5Cf79b134f20bD722F9d82")),
+				AccountId::from(hex!("E8C6c1fCb6669e7fe513F27080B0CfdB820090F9")),
+				AccountId::from(hex!("b2f60A2EA554B9139f0bD9983F1DA315a0F65248")),
+				AccountId::from(hex!("5518C505F1989a9ad212Ef14c31b370440117706")),
+				AccountId::from(hex!("F6aE36ddDE5B4986169E072Be691A83C46123D4d")),
+				AccountId::from(hex!("60Aa7e50F78B2F9a6D4874BE181900AA08813c45")),
+				AccountId::from(hex!("6Ab06bbA843d2B7D5bec1e8CB642681010c9Fdc7")),
+				AccountId::from(hex!("E7C69584C29d08df87D4B675CD759175E82Df8fE")),
+				AccountId::from(hex!("79E448aa6738Ea9e3E221a3C22dB87784fe3274F")),
+				AccountId::from(hex!("87944DE36fFCbBA0f4eb2db826bB8fb67cc41a89")),
+				AccountId::from(hex!("175268D0dAA7EFf1af2D3fF3A9A85b68c11F36eD")),
+				AccountId::from(hex!("14B2F60De647742BCE403bF6E5B1b4F3bc6691c6")),
+				AccountId::from(hex!("2A91B5e4c73060f0AabC589e718D38D456c07544")),
+				AccountId::from(hex!("d3db1c538485aC3Be0958f5F999a0Ac72795B403")),
+				AccountId::from(hex!("EdccaE47004A8F8Ea6A8ED874478CfBDB4A15677")),
+				AccountId::from(hex!("351DE59eA8ffB4d5D7C0Da3Ae3A879208d325D30")),
+				AccountId::from(hex!("4e2787B473684eb29fd8da01195B7D5D5a10b2EA")),
+				AccountId::from(hex!("64b0ea35e1b51cBCc68b0e8C98338d849bebAfe0")),
+				AccountId::from(hex!("1fF6fF9DECdf62b3F6cc1D2B223d933c80E03C98")),
+				AccountId::from(hex!("21DB53fc2c7aD068316D2b7815e7f3a38f0db474")),
+				AccountId::from(hex!("0454c3A187d50B90eB8Db3c3a8052cD8a82A8738"))
+			],
 			map_virtual_node_weight :vec![
-				(AccountId::from(hex!("8358Cc1d77F700E7D401239ccf5106afE7332bDe")), 1000),
-				(AccountId::from(hex!("9A405e3218c84D029c4aEF1b99E57216c9D17F0b")), 1000),
-				(AccountId::from(hex!("6FFC840Fe25202e59ED54055d48362A9F1cbb194")), 1000)
+				(AccountId::from(hex!("8358Cc1d77F700E7D401239ccf5106afE7332bDe")), 10),
+				(AccountId::from(hex!("9A405e3218c84D029c4aEF1b99E57216c9D17F0b")), 20),
+				(AccountId::from(hex!("6FFC840Fe25202e59ED54055d48362A9F1cbb194")), 50)
 			]
 		},
 	}

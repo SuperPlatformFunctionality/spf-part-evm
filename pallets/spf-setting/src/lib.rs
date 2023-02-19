@@ -3,6 +3,7 @@
 use frame_support::pallet;
 pub use pallet::*;
 
+
 #[pallet]
 pub mod pallet {
 	use frame_support::sp_runtime::SaturatedConversion;
@@ -94,6 +95,17 @@ pub mod pallet {
 	#[pallet::getter(fn block_number_interval_distribution)]
 	pub type BlockNumberIntervalDistribution<T: Config> = StorageValue<_, u32, ValueQuery>;
 
+	//SPF Foundation
+	#[pallet::storage]
+	#[pallet::getter(fn spf_foundation_account)]
+	pub type SpfFoundationAccounts<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+	//virtual miner
+	#[pallet::storage]
+	#[pallet::getter(fn virtual_miners)]
+	pub type VirtualMiners<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+	//virtual node
 	#[pallet::storage]
 	#[pallet::getter(fn virtual_node_weight_total)]
 	pub type VirtualNodeWeightTotal<T: Config> = StorageValue<_, TypeVirtualNodeWeight, ValueQuery>;
@@ -104,6 +116,8 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	/// Genesis config for spf setting pallet
 	pub struct GenesisConfig<T: Config> {
+		pub spf_foundation_accounts: Vec<T::AccountId>,
+		pub vec_virtual_miners: Vec<T::AccountId>,
 		pub map_virtual_node_weight: Vec<(T::AccountId, TypeVirtualNodeWeight)>
 	}
 
@@ -111,6 +125,8 @@ pub mod pallet {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			Self {
+				spf_foundation_accounts : vec![],
+				vec_virtual_miners : vec![],
 				map_virtual_node_weight : vec![]
 			}
 		}
