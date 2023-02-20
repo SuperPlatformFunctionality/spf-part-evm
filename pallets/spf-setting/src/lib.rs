@@ -167,6 +167,14 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		/*
+		fn on_initialize(_: T::BlockNumber) -> Weight {
+			let mut weight = T::WeightInfo::base_on_initialize();
+			//what is the weight?
+			weight;
+		}
+		*/
+
 		fn on_finalize(n: T::BlockNumber) {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
 			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
