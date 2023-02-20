@@ -55,6 +55,10 @@ pub mod pallet {
 	/// An error that can occur while executing the spf setting pallet's logic.
 	#[pallet::error]
 	pub enum Error<T> {
+		SpfFoundationAccountNotFound,
+		SpfFoundationAccountAlreadyExist,
+		VirtualMinerNotFound,
+		VirtualMinerAlreadyExists,
 		VirtualNodeNotFound,
 		VirtualNodeAlreadyExists,
 	}
@@ -62,6 +66,14 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		SpfFoundationRewarded {
+			account: T::AccountId,
+			amount: BalanceOf<T>,
+		},
+		VirtualMinerRewarded {
+			account: T::AccountId,
+			amount: BalanceOf<T>,
+		},
 		VirtualNodeRewarded {
 			account: T::AccountId,
 			amount: BalanceOf<T>,
@@ -134,6 +146,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			//block interval to distribute reward
 			<BlockNumberIntervalDistribution<T>>::put(12);
 
 			//spf foundation
@@ -159,6 +172,7 @@ pub mod pallet {
 			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
 			let rewards_everyday:u128 = 13698000000000000000000u128;
 			let rewards_each_round:u128 = rewards_everyday / (((3600*24 as u32)/6u32 * block_interval_distribution) as u128);
+			log::info("rewards_each_round {:?}", rewards_each_round);
 			if (n % block_interval_distribution.into()).is_zero() {
 				//distribute to spf foundation
 				{
@@ -168,8 +182,12 @@ pub mod pallet {
 						(rewards_each_round_to_foundation / (foundation_accounts.len() as u128)).saturated_into::<BalanceOf<T>>();
 
 					for tmp_account in &foundation_accounts {
-						Self::send_one_reward_by_account_id(&tmp_account, reward_each_foundation);
 						log::info!("do foundation reward {:?},{:?}", tmp_account, reward_each_foundation);
+						Self::send_one_reward_by_account_id(&tmp_account, reward_each_foundation);
+						Self::deposit_event(Event::SpfFoundationRewarded {
+							account: collator_id.clone(),
+							amount: positive_imbalance.peek().clone(),
+						});
 					}
 				}
 
@@ -181,8 +199,12 @@ pub mod pallet {
 						(rewards_each_round_to_miners / (v_miners.len() as u128)).saturated_into::<BalanceOf<T>>();
 
 					for tmp_account in &v_miners {
-						Self::send_one_reward_by_account_id(&tmp_account, reward_each_miner);
 						log::info!("do miner reward {:?},{:?}", tmp_account, reward_each_miner);
+						Self::send_one_reward_by_account_id(&tmp_account, reward_each_miner);
+						Self::deposit_event(Event::VirtualMinerRewarded {
+							account: collator_id.clone(),
+							amount: positive_imbalance.peek().clone(),
+						});
 					}
 				}
 
@@ -195,6 +217,10 @@ pub mod pallet {
 						log::info!("do node reward : {:?} , {:?}", node_id, node_weight);
 						let amt:BalanceOf<T> = (rewards_each_round_to_nodes * node_weight / total_weight).saturated_into::<BalanceOf<T>>();
 						Self::send_one_reward_by_account_id(&node_id, amt);
+						Self::deposit_event(Event::VirtualNodeRewarded {
+							account: collator_id.clone(),
+							amount: positive_imbalance.peek().clone(),
+						});
 					})
 				}
 			}
@@ -228,7 +254,6 @@ pub mod pallet {
 			/*
 				let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
 				if let Ok(amount_transferred) = retResult {
-				//				Self::deposit_event(Event::Rewarded { account: collator_id.clone(), rewards: amount_transferred.peek(), });
 					log::info!("amount_transferred {:?}", amount_transferred.peek());
 				} else if let Err(e) = retResult {
 					log::info!("not right {:?}", e);
@@ -238,10 +263,12 @@ pub mod pallet {
 			let positive_imbalance_value = positive_imbalance.peek().saturated_into::<TypeVirtualNodeWeight>();
 			if positive_imbalance_value > 0 {
 //				log::info!("positive_imbalance_value is {:?}", positive_imbalance_value);
+				/*
 				Self::deposit_event(Event::VirtualNodeRewarded {
 					account: collator_id.clone(),
 					amount: positive_imbalance.peek().clone(),
 				});
+				*/
 			}
 			true
 		}
