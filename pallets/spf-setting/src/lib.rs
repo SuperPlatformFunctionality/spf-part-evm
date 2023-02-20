@@ -89,8 +89,7 @@ pub mod pallet {
 		}
 	}
 
-
-
+	//block interval to distribute rewards
 	#[pallet::storage]
 	#[pallet::getter(fn block_number_interval_distribution)]
 	pub type BlockNumberIntervalDistribution<T: Config> = StorageValue<_, u32, ValueQuery>;
@@ -135,6 +134,8 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			<BlockNumberIntervalDistribution<T>>::put(12);
+
 			//spf foundation
 			<SpfFoundationAccounts<T>>::put(&self.spf_foundation_accounts);
 
@@ -142,7 +143,6 @@ pub mod pallet {
 			<VirtualMiners<T>>::put(&self.vec_virtual_miners);
 
 			//virtual nodes
-			<BlockNumberIntervalDistribution<T>>::put(12);
 			let mut total_weight = 0;
 			for (node_id, node_weight) in &self.map_virtual_node_weight {
 				total_weight += node_weight;
@@ -160,22 +160,49 @@ pub mod pallet {
 			let rewards_everyday:u128 = 13698000000000000000000u128;
 			let rewards_each_round:u128 = rewards_everyday / (((3600*24 as u32)/6u32 * block_interval_distribution) as u128);
 			if (n % block_interval_distribution.into()).is_zero() {
-				let total_weight = VirtualNodeWeightTotal::<T>::get();
-				let iter = VirtualNodeWeightLookup::<T>::iter();
-				iter.for_each(|(node_id, node_weight)| {
-					log::info!("do mining reward : {:?} , {:?}", node_id, node_weight);
-					let amt:BalanceOf<T> = (rewards_each_round * node_weight / total_weight).saturated_into::<BalanceOf<T>>();
-					Self::doOneMiningRewardEx(&node_id, amt);
-				})
+				//distribute to spf foundation
+				{
+					let rewards_each_round_to_foundation = rewards_each_round * 5u128 / 100u128;
+					let foundation_accounts = <SpfFoundationAccounts<T>>::get();
+					let reward_each_foundation:BalanceOf<T> =
+						(rewards_each_round_to_foundation / (foundation_accounts.len() as u128)).saturated_into::<BalanceOf<T>>();
 
+					for tmp_account in &foundation_accounts {
+						Self::send_one_reward_by_account_id(&tmp_account, reward_each_foundation);
+						log::info!("do foundation reward {:?},{:?}", tmp_account, reward_each_foundation);
+					}
+				}
+
+				//distribution to virtual miners
+				{
+					let rewards_each_round_to_miners = rewards_each_round * 25u128 / 100u128;
+					let v_miners = <VirtualMiners<T>>::get();
+					let reward_each_miner:BalanceOf<T> =
+						(rewards_each_round_to_miners / (v_miners.len() as u128)).saturated_into::<BalanceOf<T>>();
+
+					for tmp_account in &v_miners {
+						Self::send_one_reward_by_account_id(&tmp_account, reward_each_miner);
+						log::info!("do miner reward {:?},{:?}", tmp_account, reward_each_miner);
+					}
+				}
+
+				//distribution to virtual node
+				{
+					let rewards_each_round_to_nodes = rewards_each_round * 75u128 / 100u128;
+					let total_weight = VirtualNodeWeightTotal::<T>::get();
+					let iter = VirtualNodeWeightLookup::<T>::iter();
+					iter.for_each(|(node_id, node_weight)| {
+						log::info!("do node reward : {:?} , {:?}", node_id, node_weight);
+						let amt:BalanceOf<T> = (rewards_each_round_to_nodes * node_weight / total_weight).saturated_into::<BalanceOf<T>>();
+						Self::send_one_reward_by_account_id(&node_id, amt);
+					})
+				}
 			}
 		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn doOneMiningReward(node_address_h160 : &str, amt : BalanceOf<T>) -> bool {
-			//log::info!("type info : {:?}", T::AccountId::type_info());
-			log::info!("node_address_h160 : {}", node_address_h160);
+		fn getAccountIdByH160HexStr(node_address_h160 : &str) -> T::AccountId {
 			let node_address_h160_without_prefix =
 				if node_address_h160.starts_with("0x") {
 					&node_address_h160[2..]
@@ -185,13 +212,18 @@ pub mod pallet {
 
 			let mut h160_raw_data = [0u8; 20];
 			hex::decode_to_slice(node_address_h160_without_prefix, &mut h160_raw_data, ).expect("example data is 20 bytes of valid hex");
-			let collator_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
+			let account_id = T::AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::new(&h160_raw_data)).unwrap();
+			account_id
+		}
 
-			let ret = Self::doOneMiningRewardEx(&collator_id, amt);
+		fn send_one_reward_by_h160_hex_address(node_address_h160 : &str, amt : BalanceOf<T>) -> bool {
+			log::info!("node_address_h160 : {}", node_address_h160);
+			let collator_id = Self::getAccountIdByH160HexStr(node_address_h160);
+			let ret = Self::send_one_reward_by_account_id(&collator_id, amt);
 			ret
 		}
 
-		fn doOneMiningRewardEx(collator_id : &T::AccountId, amt : BalanceOf<T>) -> bool {
+		fn send_one_reward_by_account_id(collator_id : &T::AccountId, amt : BalanceOf<T>) -> bool {
 			// log::info!("collator_id {:?}", collator_id);
 			/*
 				let retResult = T::Currency::deposit_into_existing(&collator_id, amt);
