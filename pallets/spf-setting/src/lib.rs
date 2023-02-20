@@ -172,7 +172,7 @@ pub mod pallet {
 			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
 			let rewards_everyday:u128 = 13698000000000000000000u128;
 			let rewards_each_round:u128 = rewards_everyday / (((3600*24 as u32)/6u32 * block_interval_distribution) as u128);
-			log::info("rewards_each_round {:?}", rewards_each_round);
+			log::info!("rewards_each_round {:?}", rewards_each_round);
 			if (n % block_interval_distribution.into()).is_zero() {
 				//distribute to spf foundation
 				{
@@ -185,8 +185,8 @@ pub mod pallet {
 						log::info!("do foundation reward {:?},{:?}", tmp_account, reward_each_foundation);
 						Self::send_one_reward_by_account_id(&tmp_account, reward_each_foundation);
 						Self::deposit_event(Event::SpfFoundationRewarded {
-							account: collator_id.clone(),
-							amount: positive_imbalance.peek().clone(),
+							account: tmp_account.clone(),
+							amount: reward_each_foundation.clone(),
 						});
 					}
 				}
@@ -202,8 +202,8 @@ pub mod pallet {
 						log::info!("do miner reward {:?},{:?}", tmp_account, reward_each_miner);
 						Self::send_one_reward_by_account_id(&tmp_account, reward_each_miner);
 						Self::deposit_event(Event::VirtualMinerRewarded {
-							account: collator_id.clone(),
-							amount: positive_imbalance.peek().clone(),
+							account: tmp_account.clone(),
+							amount: reward_each_miner.clone(),
 						});
 					}
 				}
@@ -218,8 +218,8 @@ pub mod pallet {
 						let amt:BalanceOf<T> = (rewards_each_round_to_nodes * node_weight / total_weight).saturated_into::<BalanceOf<T>>();
 						Self::send_one_reward_by_account_id(&node_id, amt);
 						Self::deposit_event(Event::VirtualNodeRewarded {
-							account: collator_id.clone(),
-							amount: positive_imbalance.peek().clone(),
+							account: node_id.clone(),
+							amount: amt.clone(),
 						});
 					})
 				}
