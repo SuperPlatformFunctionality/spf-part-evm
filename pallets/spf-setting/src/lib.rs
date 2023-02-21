@@ -84,14 +84,14 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000)]
 		pub fn add_new_virtual_node(origin: OriginFor<T>, node_id: T::AccountId, node_weight: TypeVirtualNodeWeight) -> DispatchResult {
-			let account_id = ensure_signed(origin)?;
-
+			//let account_id = ensure_signed(origin)?;
+			frame_system::ensure_root(origin)?;
 			ensure!(
 				VirtualNodeWeightLookup::<T>::get(&node_id).is_none(),
 				Error::<T>::VirtualNodeAlreadyExists
 			);
 
-			log::info!("{:?}, {:?}, {:?}",account_id, node_id, node_weight);
+			log::info!("add_new_virtual_node {:?}, {:?}", node_id, node_weight);
 			let weight_total_old = VirtualNodeWeightTotal::<T>::get();
 			VirtualNodeWeightLookup::<T>::insert(&node_id, &node_weight);
 			let weight_total_new = weight_total_old + node_weight;
