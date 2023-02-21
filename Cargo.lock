@@ -5379,6 +5379,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-society",
  "pallet-spf-setting",
+ "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",

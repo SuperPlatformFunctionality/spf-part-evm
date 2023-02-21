@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("moonbeam"),
 	impl_name: create_runtime_str!("moonbeam"),
 	authoring_version: 3,
-	spec_version: 2000,
+	spec_version: 2020,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -668,6 +668,10 @@ impl pallet_spf_setting::Config for Runtime {
 	type DepositAmount = ConstU128<{ 100 * currency::GLMR * currency::SUPPLY_FACTOR }>;
 }
 
+impl pallet_sudo::Config for Runtime {
+	type Call = Call;
+	type Event = Event;
+}
 
 construct_runtime! {
 	pub enum Runtime where
@@ -706,7 +710,7 @@ construct_runtime! {
 		//ProxyGenesisCompanion: pallet_proxy_genesis_companion::{Pallet, Config<T>} = 35,
 
 		// Has been permanently removed for safety reasons.
-		// Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 40,
+		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 40,
 
 		// Ethereum compatibility.
 		EthereumChainId: pallet_ethereum_chain_id::{Pallet, Storage, Config} = 50,

@@ -28,7 +28,7 @@ use moonbeam_runtime::EligibilityValue;
 use moonbeam_runtime::{
 	currency::GLMR, currency::SUPPLY_FACTOR, AccountId, AuraConfig, Balance, BalancesConfig,
 	EVMConfig, EthereumChainIdConfig, EthereumConfig, SpfSettingConfig, GenesisAccount, GenesisConfig, GrandpaConfig,
-	InflationInfo, Range, Signature, SystemConfig, HOURS, WASM_BINARY,
+	InflationInfo, Range, Signature, SystemConfig, HOURS, WASM_BINARY, SudoConfig
 };
 use nimbus_primitives::NimbusId;
 use sc_service::ChainType;
@@ -79,6 +79,7 @@ pub fn development_chain_spec(mnemonic: Option<String>, num_accounts: Option<u32
 		ChainType::Development,
 		move || {
 			testnet_genesis(
+				init_accounts[0],
 				init_accounts.clone(),
 				Default::default(), // para_id
 				1280,                 //ChainId
@@ -122,6 +123,7 @@ pub fn get_chain_spec() -> ChainSpec {
 		ChainType::Local,
 		move || {
 			testnet_genesis(
+				AccountId::from(hex!("8b7f88f0FA24Ea8eAa3eA1676e21A494Df7dAada")),
 				// Endowed: Alith, Baltathar, Charleth and Dorothy
 				vec![
 //					AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
@@ -194,6 +196,7 @@ pub fn moonbeam_inflation_config() -> InflationInfo<Balance> {
 }
 
 pub fn testnet_genesis(
+	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	para_id: ParaId,
 	chain_id: u64,
@@ -227,6 +230,9 @@ pub fn testnet_genesis(
 				.iter()
 				.map(|x| (x.1.clone(), 1))
 				.collect(),
+		},
+		sudo: SudoConfig {
+			key: Some(root_key),
 		},
 		ethereum_chain_id: EthereumChainIdConfig { chain_id },
 		evm: EVMConfig {

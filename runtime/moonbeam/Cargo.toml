@@ -84,6 +84,7 @@ pallet-utility = { git = "https://github.com/purestake/substrate", branch = "moo
 pallet-aura = { git = "https://github.com/purestake/substrate", branch = "moonbeam-polkadot-v0.9.29", default-features = false }
 pallet-grandpa = { git = "https://github.com/purestake/substrate", branch = "moonbeam-polkadot-v0.9.29", default-features = false }
 pallet-authorship = { git = "https://github.com/purestake/substrate.git", branch = "moonbeam-polkadot-v0.9.29", default-features = false }
+pallet-sudo = { git = "https://github.com/purestake/substrate", branch = "moonbeam-polkadot-v0.9.29", default-features = false }
 parity-scale-codec = { version = "3.0.0", default-features = false, features = [ "derive", "max-encoded-len" ] }
 scale-info = { version = "2.0", default-features = false, features = [ "derive" ] }
 sp-api = { git = "https://github.com/purestake/substrate", branch = "moonbeam-polkadot-v0.9.29", default-features = false }
@@ -200,6 +201,7 @@ std = [
 	"pallet-ethereum/std",
 	"pallet-aura/std",
     "pallet-grandpa/std",
+	"pallet-sudo/std",
 	"pallet-evm-precompile-author-mapping/std",
 	"pallet-evm-precompile-balances-erc20/std",
 	"pallet-evm-precompile-batch/std",
