@@ -86,15 +86,29 @@ pub mod pallet {
 		pub fn add_new_virtual_node(origin: OriginFor<T>, node_id: T::AccountId, node_weight: TypeVirtualNodeWeight) -> DispatchResult {
 			//let account_id = ensure_signed(origin)?;
 			frame_system::ensure_root(origin)?;
-			ensure!(
-				VirtualNodeWeightLookup::<T>::get(&node_id).is_none(),
-				Error::<T>::VirtualNodeAlreadyExists
-			);
+			ensure!(VirtualNodeWeightLookup::<T>::get(&node_id).is_none(), Error::<T>::VirtualNodeAlreadyExists);
 
 			log::info!("add_new_virtual_node {:?}, {:?}", node_id, node_weight);
-			let weight_total_old = VirtualNodeWeightTotal::<T>::get();
 			VirtualNodeWeightLookup::<T>::insert(&node_id, &node_weight);
+
+			let weight_total_old = VirtualNodeWeightTotal::<T>::get();
 			let weight_total_new = weight_total_old + node_weight;
+			<VirtualNodeWeightTotal<T>>::put(weight_total_new);
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn remove_virtual_node(origin: OriginFor<T>, node_id: T::AccountId) -> DispatchResult {
+			frame_system::ensure_root(origin)?;
+
+			let node_weight = VirtualNodeWeightLookup::<T>::get(&node_id).ok_or(Error::<T>::VirtualNodeNotFound)?;
+
+			log::info!("remove_virtual_node {:?}, {:?}", node_id, node_weight);
+			VirtualNodeWeightLookup::<T>::remove(&node_id);
+
+			let weight_total_old = VirtualNodeWeightTotal::<T>::get();
+			let weight_total_new = weight_total_old - node_weight;
 			<VirtualNodeWeightTotal<T>>::put(weight_total_new);
 
 			Ok(())
@@ -147,7 +161,7 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			//block interval to distribute reward
-			<BlockNumberIntervalDistribution<T>>::put(12);
+			<BlockNumberIntervalDistribution<T>>::put(1200);
 
 			//spf foundation
 			<SpfFoundationAccounts<T>>::put(&self.spf_foundation_accounts);
@@ -178,10 +192,11 @@ pub mod pallet {
 		fn on_finalize(n: T::BlockNumber) {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
 			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
-			let rewards_everyday:u128 = 13698000000000000000000u128;
-			let rewards_each_round:u128 = rewards_everyday / (((3600u32 * 24u32) / (6u32 * block_interval_distribution)) as u128);
-			log::info!("rewards_each_round {:?}", rewards_each_round);
 			if (n % block_interval_distribution.into()).is_zero() {
+				let rewards_everyday:u128 = 13698000000000000000000u128;
+				let rewards_each_round:u128 = rewards_everyday / (((3600u32 * 24u32) / (6u32 * block_interval_distribution)) as u128);
+				log::info!("rewards_each_round {:?}", rewards_each_round);
+
 				//distribute to spf foundation
 				{
 					let rewards_each_round_to_foundation = rewards_each_round * 5u128 / 100u128;
