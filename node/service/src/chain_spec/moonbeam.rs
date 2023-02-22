@@ -126,6 +126,7 @@ pub fn get_chain_spec() -> ChainSpec {
 				AccountId::from(hex!("8b7f88f0FA24Ea8eAa3eA1676e21A494Df7dAada")),
 				// Endowed: Alith, Baltathar, Charleth and Dorothy
 				vec![
+					AccountId::from(hex!("8b7f88f0FA24Ea8eAa3eA1676e21A494Df7dAada")),
 //					AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
 //					AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")),
 //					AccountId::from(hex!("798d4Ba9baf0064Ec19eB4F0a1a45785ae9D6DFc")),
@@ -219,7 +220,7 @@ pub fn testnet_genesis(
 				.iter()
 				.cloned()
 //				.map(|k| (k, 1 << 80))
-				.map(|k| (k, 1000000 * u128::pow(10,18)))
+				.map(|k| (k, 1 * u128::pow(10,18)))
 				.collect(),
 		},
 		aura: AuraConfig {
