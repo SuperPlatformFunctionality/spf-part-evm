@@ -179,7 +179,7 @@ pub mod pallet {
 //			log::info!("block number {:?}, {:?}", n, T::AccountId::type_info());
 			let block_interval_distribution = BlockNumberIntervalDistribution::<T>::get();
 			let rewards_everyday:u128 = 13698000000000000000000u128;
-			let rewards_each_round:u128 = rewards_everyday / (((3600*24 as u32)/6u32 * block_interval_distribution) as u128);
+			let rewards_each_round:u128 = rewards_everyday / (((3600u32 * 24u32) / (6u32 * block_interval_distribution)) as u128);
 			log::info!("rewards_each_round {:?}", rewards_each_round);
 			if (n % block_interval_distribution.into()).is_zero() {
 				//distribute to spf foundation
