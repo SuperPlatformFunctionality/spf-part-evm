@@ -207,7 +207,7 @@ pub mod pallet {
 						(rewards_each_round_to_miners / (v_miners.len() as u128)).saturated_into::<BalanceOf<T>>();
 
 					for tmp_account in &v_miners {
-						log::info!("do miner reward {:?},{:?}", tmp_account, reward_each_miner);
+//						log::info!("do miner reward {:?},{:?}", tmp_account, reward_each_miner);
 						Self::send_one_reward_by_account_id(&tmp_account, reward_each_miner);
 						Self::deposit_event(Event::VirtualMinerRewarded {
 							account: tmp_account.clone(),
@@ -222,7 +222,7 @@ pub mod pallet {
 					let total_weight = VirtualNodeWeightTotal::<T>::get();
 					let iter = VirtualNodeWeightLookup::<T>::iter();
 					iter.for_each(|(node_id, node_weight)| {
-						log::info!("do node reward : {:?} , {:?}", node_id, node_weight);
+//						log::info!("do node reward : {:?} , {:?}", node_id, node_weight);
 						let amt:BalanceOf<T> = (rewards_each_round_to_nodes * node_weight / total_weight).saturated_into::<BalanceOf<T>>();
 						Self::send_one_reward_by_account_id(&node_id, amt);
 						Self::deposit_event(Event::VirtualNodeRewarded {
