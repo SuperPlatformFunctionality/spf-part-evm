@@ -55,12 +55,14 @@ pub mod pallet {
 	/// An error that can occur while executing the spf setting pallet's logic.
 	#[pallet::error]
 	pub enum Error<T> {
+		BlockNumberIntervalDistributionValueInvalid,
 		SpfFoundationAccountNotFound,
 		SpfFoundationAccountAlreadyExist,
 		VirtualMinerNotFound,
 		VirtualMinerAlreadyExists,
 		VirtualNodeNotFound,
 		VirtualNodeAlreadyExists,
+		ParamWeightShouldGreaterThanZero
 	}
 
 	#[pallet::event]
@@ -82,11 +84,23 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(1000)]
+		pub fn set_block_number_interval_distribution(origin: OriginFor<T>, interval: u32) -> DispatchResult {
+			frame_system::ensure_root(origin)?;
+			ensure!(interval > 0 && interval <= 7200, Error::<T>::BlockNumberIntervalDistributionValueInvalid);
+			log::info!("set_block_number_interval_distribution new value {:?}", interval);
+
+			<BlockNumberIntervalDistribution<T>>::put(interval);
+
+			Ok(())
+		}
+
 		#[pallet::weight(10_000)]
 		pub fn add_new_virtual_node(origin: OriginFor<T>, node_id: T::AccountId, node_weight: TypeVirtualNodeWeight) -> DispatchResult {
 			//let account_id = ensure_signed(origin)?;
 			frame_system::ensure_root(origin)?;
 			ensure!(VirtualNodeWeightLookup::<T>::get(&node_id).is_none(), Error::<T>::VirtualNodeAlreadyExists);
+			ensure!(node_weight > 0, Error::<T>::ParamWeightShouldGreaterThanZero);
 
 			log::info!("add_new_virtual_node {:?}, {:?}", node_id, node_weight);
 			VirtualNodeWeightLookup::<T>::insert(&node_id, &node_weight);
