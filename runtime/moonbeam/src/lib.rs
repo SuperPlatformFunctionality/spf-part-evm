@@ -480,28 +480,57 @@ fn getFeeReceiverFromAuthor(authority_id: &AuraId) -> H160 {
 	};
 	*/
 	let raw_data:&[u8] = authority_id.as_ref();
-	if(raw_data == [168, 111, 253, 179, 153, 29, 7, 14, 241, 142,  34, 148,  97, 119,  30, 141, 251, 139, 196, 3, 176,  81, 163, 251, 137, 248, 228, 169,  46, 225, 135, 106]) {
+	if(raw_data == [
+		128,  73, 185, 196,  90, 118,  57, 255,
+		231, 212,  89,  31,  11, 162, 217,  71,
+		14, 182, 197, 110, 223,   7,  85, 210,
+		246,  43, 231, 103, 255, 219, 251,  33]) {
 		// production
-		// sr25519 public key : 0xa86ffdb3991d070ef18e229461771e8dfb8bc403b051a3fb89f8e4a92ee1876a
-		// ss58 address : 5FsZApNyn29SFhxwwxmmSsVFhDDagVTsYCcsCA8VKtuCuRAh
+		// sr25519 public key : 0x8049b9c45a7639ffe7d4591f0ba2d9470eb6c56edf0755d2f62be767ffdbfb21
+		// ss58 address : 5ExutRnmi4iw7KHDmEg5bj9XPcuTBxURC62vXadWhr73rhLP
 		account_h160_raw = &hex_literal::hex!("8D6EF00FD445982f4F49f889f6F168bfF8c9548F"); //0x8D6EF00FD445982f4F49f889f6F168bfF8c9548F from gao
-	} else if(raw_data == [6, 79, 184,  29, 220,  83,  59, 4, 34, 68, 206, 129, 177, 119, 151,  76, 58,  6,  86, 183,  22,   0,  92, 154, 22, 50,  55, 188, 247,  19, 113, 8]) {
+	} else if(raw_data == [
+			82, 124,  39, 107,  30, 216,  18,  26,
+			251,  93, 123,  43, 250,  53, 169, 188,
+			166,  58, 237, 126,  98, 210, 112,   3,
+			74, 147,  38, 128,   8,   7,  74,  48
+		]) {
 		// production
-		// sr25519 public key : 0x064fb81ddc533b042244ce81b177974c3a0656b716005c9a163237bcf7137108
-		// ss58 address : 5CCypryvRrhrKcvbC3iJHFyyhnJ4gxXQjeAKtTKaDeCfWZgX
+		// sr25519 public key : 0x527c276b1ed8121afb5d7b2bfa35a9bca63aed7e62d270034a93268008074a30
+		// ss58 address : 5DvrfXnjGcT1uyGeGP59q9cduPQpmtsTCU3nKJJ84XyXAuEP
 		account_h160_raw = &hex_literal::hex!("Cd6A2A9772426fB9f759A6157A4CC5530b6674fe"); //0xCd6A2A9772426fB9f759A6157A4CC5530b6674fe from gao
-	} else if (raw_data == [108, 92, 219, 172, 36, 182, 70, 55, 129, 234, 85, 137, 87, 206, 212, 69, 190, 228, 211, 187, 103, 165, 98, 121, 181, 119, 89, 153, 56, 92, 49, 27]) {
+	} else if (raw_data == [
+		16,  78,  50, 114, 153, 123,  12,  26,
+		161, 128, 195, 255,  45,  87, 123, 157,
+		26, 137, 202,  25,  47, 156, 215,  13,
+		79, 230, 246,  93, 252, 131, 179,  42
+	]) {
 		// production
-		// sr2519 production key : 0x6c5cdbac24b6463781ea558957ced445bee4d3bb67a56279b5775999385c311b
-		// ss58 address : 5EWncXUeu8XhwQpZ7KLcUY9A2TjWW1WV18F2XvsZUFMUxd34
+		// sr2519 production key : 0x104e3272997b0c1aa180c3ff2d577b9d1a89ca192f9cd70d4fe6f65dfc83b32a
+		// ss58 address : 5CS5rQifi2riKwa8Nn3zLRz5MA3Bmg9Brk89fahoDECAR2JG
 		account_h160_raw = &hex_literal::hex!("44f6812d7ae6f17F4963fC349652696BF9bc9307"); //0x44f6812d7ae6f17F4963fC349652696BF9bc9307 from gao
-	} else if (raw_data == [212, 53, 147, 199,  21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133,  76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125]) {
-		// test
-		// sr25519 public key :0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-		// ss58 address :5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-		account_h160_raw = &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"); //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
+	} else if (raw_data == [
+		12,  67, 208, 167,  77,  64,  76, 137,
+		109, 205,  62,  43, 104,  72, 155,  11,
+		65,  50, 194,  61,  79, 209,  78,  54,
+		235,  82,  53,  85,  60, 175,  43,  42
+	]) {
+		// production
+		// sr2519 production key : 0x0c43d0a74d404c896dcd3e2b68489b0b4132c23d4fd14e36eb5235553caf2b2a
+		// ss58 address : 5CLnaRU6WHqNy7Np9PEUa6XYe69xDdrZ9C59wCp7mjsJepHX
+		account_h160_raw = &hex_literal::hex!("8D6EF00FD445982f4F49f889f6F168bfF8c9548F"); //8D6EF00FD445982f4F49f889f6F168bfF8c9548F from gao
+	} else if (raw_data == [
+		234, 189,  68,  63, 125, 238,  54, 235,
+		221,   8,  82,  68, 203, 123,  35,  97,
+		31, 164, 214,  48,  57, 169, 128,  37,
+		21, 194, 244, 131,  81, 132, 237,  84
+	]) {
+		// production
+		// sr2519 production key : 0xeabd443f7dee36ebdd085244cb7b23611fa4d63039a9802515c2f4835184ed54
+		// ss58 address : 5HNVHYhtet3b8jXkhnGkXYmkB2hzQrFXZzEK7CYQpbWUEN11
+		account_h160_raw = &hex_literal::hex!("Cd6A2A9772426fB9f759A6157A4CC5530b6674fe"); //Cd6A2A9772426fB9f759A6157A4CC5530b6674fe from gao
 	} else {
-		account_h160_raw = &hex_literal::hex!("A874A88Ba3327FBF43D5D2D3D5226f45300251CC"); //0xA874A88Ba3327FBF43D5D2D3D5226f45300251CC
+		account_h160_raw = &hex_literal::hex!("44f6812d7ae6f17F4963fC349652696BF9bc9307"); //0x44f6812d7ae6f17F4963fC349652696BF9bc9307 from gao
 	}
 	return H160::from_slice(&account_h160_raw);
 }
