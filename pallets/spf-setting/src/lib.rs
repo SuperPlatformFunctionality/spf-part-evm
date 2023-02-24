@@ -230,7 +230,7 @@ pub mod pallet {
 
 				//distribution to virtual miners
 				{
-					let rewards_each_round_to_miners = rewards_each_round * 25u128 / 100u128;
+					let rewards_each_round_to_miners = rewards_each_round * 20u128 / 100u128;
 					let v_miners = <VirtualMiners<T>>::get();
 					let reward_each_miner:BalanceOf<T> =
 						(rewards_each_round_to_miners / (v_miners.len() as u128)).saturated_into::<BalanceOf<T>>();
